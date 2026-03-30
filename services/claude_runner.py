@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
-# Per-chat sessions keyed by chat_id
-_sessions: dict[int, "ClaudeSession"] = {}
+# Per-user sessions keyed by user_id (e.g. "telegram:123", "discord:456")
+_sessions: dict[str, "ClaudeSession"] = {}
 
 
 @dataclass
@@ -20,26 +20,26 @@ class ClaudeSession:
     is_first_turn: bool = True
 
 
-def get_session(chat_id: int, default_cwd: str, default_model: str) -> ClaudeSession:
-    """Get or create a session for a chat."""
-    if chat_id not in _sessions:
-        _sessions[chat_id] = ClaudeSession(
+def get_session(user_id: str, default_cwd: str, default_model: str) -> ClaudeSession:
+    """Get or create a session for a user."""
+    if user_id not in _sessions:
+        _sessions[user_id] = ClaudeSession(
             working_dir=default_cwd, model=default_model
         )
-    return _sessions[chat_id]
+    return _sessions[user_id]
 
 
-def reset_session(chat_id: int, default_cwd: str, default_model: str) -> ClaudeSession:
-    """Create a fresh session for a chat."""
-    _sessions[chat_id] = ClaudeSession(
+def reset_session(user_id: str, default_cwd: str, default_model: str) -> ClaudeSession:
+    """Create a fresh session for a user."""
+    _sessions[user_id] = ClaudeSession(
         working_dir=default_cwd, model=default_model
     )
-    return _sessions[chat_id]
+    return _sessions[user_id]
 
 
-async def cancel_claude(chat_id: int) -> bool:
-    """Kill the running Claude process for a chat. Returns True if killed."""
-    session = _sessions.get(chat_id)
+async def cancel_claude(user_id: str) -> bool:
+    """Kill the running Claude process for a user. Returns True if killed."""
+    session = _sessions.get(user_id)
     if session and session.process and session.process.returncode is None:
         session.process.terminate()
         try:
@@ -51,15 +51,15 @@ async def cancel_claude(chat_id: int) -> bool:
     return False
 
 
-def is_running(chat_id: int) -> bool:
-    session = _sessions.get(chat_id)
+def is_running(user_id: str) -> bool:
+    session = _sessions.get(user_id)
     return bool(
         session and session.process and session.process.returncode is None
     )
 
 
 async def run_claude_streaming(
-    chat_id: int,
+    user_id: str,
     prompt: str,
     config,
     on_text_delta: callable = None,
@@ -70,9 +70,9 @@ async def run_claude_streaming(
     Calls on_text_delta(text) for each content chunk.
     Calls on_result(full_text, cost_usd) when complete.
     """
-    session = get_session(chat_id, config.default_cwd, config.default_model)
+    session = get_session(user_id, config.default_cwd, config.default_model)
 
-    if is_running(chat_id):
+    if is_running(user_id):
         raise RuntimeError("Claude is already running for this chat")
 
     cmd = [
@@ -165,12 +165,12 @@ async def run_claude_streaming(
 
 
 async def run_claude_simple(
-    chat_id: int, prompt: str, config
+    user_id: str, prompt: str, config
 ) -> tuple[str, float]:
     """Non-streaming fallback. Returns (text, cost_usd)."""
-    session = get_session(chat_id, config.default_cwd, config.default_model)
+    session = get_session(user_id, config.default_cwd, config.default_model)
 
-    if is_running(chat_id):
+    if is_running(user_id):
         raise RuntimeError("Claude is already running for this chat")
 
     cmd = [

@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus - Knowledge Graph</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root {
+  --bg-primary: #1e1e2e;
+  --bg-secondary: #181825;
+  --bg-surface: #252536;
+  --bg-hover: #313244;
+  --text-primary: #cdd6f4;
+  --text-secondary: #a6adc8;
+  --text-muted: #6c7086;
+  --accent: #89b4fa;
+  --accent-dim: #45475a;
+  --green: #a6e3a1;
+  --red: #f38ba8;
+  --yellow: #f9e2af;
+  --mauve: #cba6f7;
+  --peach: #fab387;
+  --teal: #94e2d5;
+  --border: #313244;
+  --radius: 8px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Top Bar ─────────────────────── */
+.topbar {
+  display: flex; align-items: center; padding: 8px 16px;
+  background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+  gap: 16px; flex-shrink: 0;
+}
+.topbar .logo { font-weight: 700; font-size: 14px; color: var(--accent); white-space: nowrap; }
+.topbar .search { flex: 1; max-width: 400px; }
+.topbar .search input {
+  width: 100%; padding: 6px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--bg-surface);
+  color: var(--text-primary); font-size: 13px; outline: none;
+}
+.topbar .search input:focus { border-color: var(--accent); }
+.topbar .stats { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.tab-bar { display: flex; gap: 2px; }
+.tab-bar button {
+  padding: 5px 14px; border: none; background: none; color: var(--text-secondary);
+  cursor: pointer; font-size: 13px; border-radius: var(--radius) var(--radius) 0 0; transition: all 0.15s;
+}
+.tab-bar button:hover { background: var(--bg-hover); }
+.tab-bar button.active { background: var(--bg-surface); color: var(--accent); }
+
+/* ── Main Layout ─────────────────── */
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Sidebar ─────────────────────── */
+.sidebar {
+  width: 280px; background: var(--bg-secondary); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
+}
+.sidebar-actions { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.sidebar-actions button {
+  flex: 1; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;
+  font-size: 12px; transition: all 0.15s; white-space: nowrap;
+}
+.sidebar-actions button:hover { border-color: var(--accent); color: var(--accent); }
+
+.sidebar-section { border-bottom: 1px solid var(--border); }
+.sidebar-section:last-child { border-bottom: none; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-header {
+  padding: 8px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;
+}
+.sidebar-header .add-btn {
+  cursor: pointer; padding: 0 4px; font-size: 14px; color: var(--text-muted);
+  border: none; background: none; transition: color 0.15s;
+}
+.sidebar-header .add-btn:hover { color: var(--accent); }
+
+/* Category tree */
+.category-tree { padding: 2px 6px 6px; max-height: 200px; overflow-y: auto; }
+.cat-item {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px;
+  cursor: pointer; font-size: 12px; color: var(--text-secondary); transition: background 0.1s;
+}
+.cat-item:hover { background: var(--bg-hover); }
+.cat-item.active { background: var(--bg-surface); color: var(--accent); }
+.cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.cat-count { color: var(--text-muted); font-size: 11px; margin-left: auto; }
+.cat-item .cat-delete {
+  display: none; color: var(--text-muted); border: none; background: none;
+  cursor: pointer; font-size: 11px; padding: 0 2px;
+}
+.cat-item:hover .cat-delete { display: inline; }
+.cat-item:hover .cat-count { display: none; }
+
+/* Filter tabs */
+.filter-tabs { display: flex; gap: 0; padding: 0 10px 6px; }
+.filter-tabs button {
+  flex: 1; padding: 4px; border: 1px solid var(--border); background: none;
+  color: var(--text-muted); cursor: pointer; font-size: 11px;
+}
+.filter-tabs button:first-child { border-radius: 4px 0 0 4px; }
+.filter-tabs button:last-child { border-radius: 0 4px 4px 0; }
+.filter-tabs button:not(:first-child) { border-left: none; }
+.filter-tabs button.active { background: var(--accent-dim); color: var(--text-primary); }
+
+.sidebar-list { flex: 1; overflow-y: auto; padding: 4px; }
+.sidebar-item {
+  padding: 8px 12px; border-radius: 6px; cursor: pointer;
+  transition: background 0.1s; margin-bottom: 2px;
+}
+.sidebar-item:hover { background: var(--bg-hover); }
+.sidebar-item.active { background: var(--bg-surface); border-left: 2px solid var(--accent); }
+.sidebar-item .title {
+  font-size: 13px; font-weight: 500; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sidebar-item .meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; display: flex; gap: 8px; }
+.type-badge {
+  font-size: 10px; padding: 1px 6px; border-radius: 10px;
+  background: var(--accent-dim); color: var(--text-secondary);
+}
+
+/* ── Content Area ────────────────── */
+.content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.content-view { flex: 1; overflow-y: auto; padding: 24px 32px; display: none; }
+.content-view.active { display: block; }
+
+.note-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.note-header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+.note-header .note-meta {
+  font-size: 12px; color: var(--text-muted); display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+}
+.note-body { font-size: 14px; line-height: 1.7; color: var(--text-secondary); max-width: 800px; }
+.note-body h1, .note-body h2, .note-body h3 { color: var(--text-primary); margin: 20px 0 10px; }
+.note-body p { margin-bottom: 12px; }
+.note-body a { color: var(--accent); }
+.note-body code { background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+.note-body pre { background: var(--bg-surface); padding: 12px; border-radius: var(--radius); overflow-x: auto; margin-bottom: 12px; }
+.note-body blockquote { border-left: 3px solid var(--accent); padding-left: 14px; color: var(--text-muted); margin-bottom: 12px; }
+
+.entity-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
+.entity-tag {
+  padding: 4px 10px; border-radius: 14px; font-size: 12px; cursor: pointer;
+  transition: opacity 0.15s; border: none; color: var(--bg-primary); font-weight: 500;
+}
+.entity-tag:hover { opacity: 0.8; }
+.entity-tag[data-type="person"] { background: var(--accent); }
+.entity-tag[data-type="organization"], .entity-tag[data-type="org"] { background: var(--mauve); }
+.entity-tag[data-type="concept"] { background: var(--green); }
+.entity-tag[data-type="technology"] { background: var(--peach); }
+.entity-tag[data-type="location"], .entity-tag[data-type="place"] { background: var(--teal); }
+.entity-tag[data-type="event"] { background: var(--yellow); }
+.entity-tag[data-type="product"] { background: var(--red); }
+.entity-tag[data-type="topic"] { background: var(--green); }
+
+.relationships-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.relationships-section h3 {
+  font-size: 13px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+}
+.rel-item { padding: 6px 0; font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+.rel-item .rel-type { color: var(--text-muted); font-size: 11px; padding: 2px 6px; background: var(--bg-surface); border-radius: 4px; }
+.rel-item .rel-target { color: var(--accent); cursor: pointer; }
+.rel-item .rel-target:hover { text-decoration: underline; }
+
+/* ── Note Editor ─────────────────── */
+.editor { display: none; flex-direction: column; gap: 12px; max-width: 900px; }
+.editor.active { display: flex; }
+.editor-title {
+  width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-surface); color: var(--text-primary); font-size: 20px; font-weight: 600; outline: none;
+}
+.editor-title:focus { border-color: var(--accent); }
+.editor-toolbar { display: flex; gap: 8px; align-items: center; }
+.editor-toolbar button {
+  padding: 5px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; font-size: 12px;
+}
+.editor-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+.editor-toolbar button.primary { background: var(--accent); color: var(--bg-primary); border-color: var(--accent); }
+.editor-toolbar button.primary:hover { opacity: 0.9; }
+.editor-toolbar button.danger { color: var(--red); }
+.editor-toolbar button.danger:hover { border-color: var(--red); }
+.editor-toolbar .spacer { flex: 1; }
+.editor-toolbar select {
+  padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-surface); color: var(--text-secondary); font-size: 12px; outline: none;
+}
+.editor-textarea {
+  width: 100%; min-height: 500px; padding: 16px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--bg-surface); color: var(--text-primary);
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 14px; line-height: 1.6; resize: vertical; outline: none;
+}
+.editor-textarea:focus { border-color: var(--accent); }
+.editor-status { font-size: 12px; color: var(--text-muted); }
+
+/* ── Graph View ──────────────────── */
+#graph-container { flex: 1; display: none; position: relative; overflow: hidden; }
+#graph-container.active { display: block; }
+#graph-container svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.graph-node circle { stroke-width: 2px; cursor: pointer; }
+.graph-node text { font-size: 10px; fill: var(--text-secondary); pointer-events: none; text-anchor: middle; }
+.graph-link { stroke: var(--accent-dim); stroke-opacity: 0.4; }
+.graph-link-label { font-size: 8px; fill: var(--text-muted); text-anchor: middle; }
+
+/* ── Modal (ingest dialog, category create) ── */
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px;
+  padding: 24px; min-width: 400px; max-width: 500px;
+}
+.modal h3 { font-size: 16px; margin-bottom: 16px; }
+.modal input, .modal select {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-surface); color: var(--text-primary); font-size: 14px; outline: none; margin-bottom: 12px;
+}
+.modal input:focus { border-color: var(--accent); }
+.modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+.modal .modal-actions button {
+  padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; font-size: 13px;
+}
+.modal .modal-actions button.primary { background: var(--accent); color: var(--bg-primary); border-color: var(--accent); }
+.modal .modal-status { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+
+/* ── Wiki links ──────────────────── */
+a.wiki-link { color: var(--mauve); text-decoration: none; border-bottom: 1px dashed var(--mauve); }
+a.wiki-link:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Welcome ─────────────────────── */
+.welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); gap: 12px; }
+.welcome h2 { color: var(--text-secondary); font-weight: 500; }
+.welcome p { font-size: 14px; max-width: 400px; text-align: center; line-height: 1.6; }
+
+/* ── Scrollbar ───────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--accent-dim); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+.resize-handle { width: 4px; cursor: col-resize; background: transparent; flex-shrink: 0; transition: background 0.15s; }
+.resize-handle:hover { background: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- Setup Wizard Overlay -->
+<div id="setupOverlay" style="display:none; position:fixed; inset:0; z-index:10000; background:var(--bg); overflow-y:auto;">
+  <div style="max-width:600px; margin:60px auto; padding:0 24px;">
+    <h1 style="color:var(--accent); margin-bottom:4px;">Nexus</h1>
+    <p style="color:var(--subtext); margin-bottom:32px;">Welcome! Configure at least one messaging platform to get started.</p>
+
+    <div id="setupSteps">
+      <!-- Step 1: Platform selection -->
+      <div id="setupStep1">
+        <h3 style="color:var(--text);">1. Choose Platforms</h3>
+        <p style="color:var(--subtext); font-size:13px;">Select which platforms you'd like to connect. You need at least one.</p>
+        <label style="display:flex; align-items:center; gap:8px; margin:12px 0; color:var(--text); cursor:pointer;">
+          <input type="checkbox" id="setupTelegram" onchange="updateSetupPlatforms()"> Telegram
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; margin:12px 0; color:var(--text); cursor:pointer;">
+          <input type="checkbox" id="setupDiscord" onchange="updateSetupPlatforms()"> Discord
+        </label>
+      </div>
+
+      <!-- Step 2: Telegram config -->
+      <div id="setupTelegramSection" style="display:none; margin-top:24px; padding:16px; background:var(--surface0); border-radius:8px;">
+        <h3 style="color:var(--text);">Telegram Setup</h3>
+        <ol style="color:var(--subtext); font-size:13px; padding-left:20px; line-height:1.8;">
+          <li>Open Telegram and search for <strong>@BotFather</strong></li>
+          <li>Send <code>/newbot</code> and follow the prompts</li>
+          <li>Copy the bot token and paste it below</li>
+          <li>Send <code>/start</code> to your new bot to get your chat ID</li>
+        </ol>
+        <div style="margin-top:12px;">
+          <label style="color:var(--subtext); font-size:12px;">Bot Token</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="setupTgToken" placeholder="123456:ABC-DEF..." style="flex:1; padding:8px; background:var(--surface1); border:1px solid var(--surface2); border-radius:4px; color:var(--text);">
+            <button onclick="validateToken('telegram')" style="padding:8px 16px; background:var(--accent); color:var(--bg); border:none; border-radius:4px; cursor:pointer;">Validate</button>
+          </div>
+          <div id="setupTgStatus" style="font-size:12px; margin-top:4px;"></div>
+        </div>
+        <div style="margin-top:12px;">
+          <label style="color:var(--subtext); font-size:12px;">Allowed Chat IDs (comma-separated)</label>
+          <input type="text" id="setupTgIds" placeholder="123456789" style="width:100%; padding:8px; background:var(--surface1); border:1px solid var(--surface2); border-radius:4px; color:var(--text); box-sizing:border-box;">
+        </div>
+      </div>
+
+      <!-- Step 3: Discord config -->
+      <div id="setupDiscordSection" style="display:none; margin-top:24px; padding:16px; background:var(--surface0); border-radius:8px;">
+        <h3 style="color:var(--text);">Discord Setup</h3>
+        <ol style="color:var(--subtext); font-size:13px; padding-left:20px; line-height:1.8;">
+          <li>Go to <strong>discord.com/developers/applications</strong></li>
+          <li>Create a new application, then go to <strong>Bot</strong> section</li>
+          <li>Click <strong>Reset Token</strong> and copy it below</li>
+          <li>Under <strong>Privileged Gateway Intents</strong>, enable <strong>Message Content Intent</strong></li>
+          <li>Go to <strong>OAuth2 > URL Generator</strong>, select <strong>bot</strong> scope with <strong>Send Messages</strong> + <strong>Read Message History</strong> permissions, then use the generated URL to invite the bot to your server</li>
+        </ol>
+        <div style="margin-top:12px;">
+          <label style="color:var(--subtext); font-size:12px;">Bot Token</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="setupDcToken" placeholder="MTIzNDU2Nzg5..." style="flex:1; padding:8px; background:var(--surface1); border:1px solid var(--surface2); border-radius:4px; color:var(--text);">
+            <button onclick="validateToken('discord')" style="padding:8px 16px; background:var(--accent); color:var(--bg); border:none; border-radius:4px; cursor:pointer;">Validate</button>
+          </div>
+          <div id="setupDcStatus" style="font-size:12px; margin-top:4px;"></div>
+        </div>
+        <div style="margin-top:12px;">
+          <label style="color:var(--subtext); font-size:12px;">Allowed User/Channel IDs (comma-separated)</label>
+          <input type="text" id="setupDcIds" placeholder="123456789" style="width:100%; padding:8px; background:var(--surface1); border:1px solid var(--surface2); border-radius:4px; color:var(--text); box-sizing:border-box;">
+        </div>
+      </div>
+
+      <!-- Step 4: Shared settings -->
+      <div id="setupSettingsSection" style="margin-top:24px; padding:16px; background:var(--surface0); border-radius:8px;">
+        <h3 style="color:var(--text);">Settings</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label style="color:var(--subtext); font-size:12px;">Working Directory</label>
+            <input type="text" id="setupCwd" placeholder="." style="width:100%; padding:8px; background:var(--surface1); border:1px solid var(--surface2); border-radius:4px; color:var(--text); box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="color:var(--subtext); font-size:12px;">Claude Model</label>
+            <input type="text" id="setupModel" value="sonnet" style="width:100%; padding:8px; background:var(--surface1); border:1px solid var(--surface2); border-radius:4px; color:var(--text); box-sizing:border-box;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Save button -->
+      <div style="margin-top:24px; text-align:right;">
+        <button id="setupSaveBtn" onclick="saveSetup()" disabled style="padding:10px 32px; background:var(--accent); color:var(--bg); border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:600; opacity:0.5;">
+          Save & Launch
+        </button>
+      </div>
+      <div id="setupSaveStatus" style="font-size:13px; margin-top:8px; text-align:right;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="logo">Nexus</div>
+  <div class="search"><input type="text" id="searchInput" placeholder="Search entities, sources, notes..." /></div>
+  <div class="tab-bar">
+    <button class="active" data-view="notes" onclick="switchView('notes', this)">Notes</button>
+    <button data-view="graph" onclick="switchView('graph', this)">Graph</button>
+  </div>
+  <div class="stats" id="statsBar">Loading...</div>
+</div>
+
+<div class="main">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-actions">
+      <button onclick="openNoteEditor()">+ New Note</button>
+      <button onclick="showModal('ingestModal')">+ Ingest URL</button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-header">
+        <span>Categories</span>
+        <button class="add-btn" onclick="showModal('categoryModal')">+</button>
+      </div>
+      <div class="category-tree" id="categoryTree"></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-header"><span id="sidebarTitle">All Items</span></div>
+      <div class="filter-tabs">
+        <button class="active" onclick="setFilter('all', this)">All</button>
+        <button onclick="setFilter('notes', this)">Notes</button>
+        <button onclick="setFilter('sources', this)">Sources</button>
+      </div>
+      <div class="sidebar-list" id="sidebarList"></div>
+    </div>
+  </div>
+
+  <div class="resize-handle" id="resizeHandle"></div>
+
+  <div class="content">
+    <div class="content-view active" id="notesView">
+      <div class="welcome" id="welcomeState">
+        <h2>Knowledge Graph</h2>
+        <p>Create a note, ingest a URL, or select an item from the sidebar. Switch to Graph view to explore visually.</p>
+      </div>
+      <div id="noteContent" style="display:none;"></div>
+      <div class="editor" id="noteEditor">
+        <input type="text" class="editor-title" id="editorTitle" placeholder="Note title..." />
+        <div class="editor-toolbar">
+          <button onclick="togglePreview()">Preview</button>
+          <select id="editorCategory" multiple title="Hold Ctrl to select multiple"></select>
+          <span class="spacer"></span>
+          <button class="danger" id="editorDeleteBtn" onclick="deleteCurrentNote()" style="display:none">Delete</button>
+          <button onclick="cancelEditor()">Cancel</button>
+          <button class="primary" onclick="saveNote()">Save</button>
+        </div>
+        <textarea class="editor-textarea" id="editorContent" placeholder="Write your note in Markdown..."></textarea>
+        <div id="editorPreview" class="note-body" style="display:none;"></div>
+        <div class="editor-status" id="editorStatus"></div>
+      </div>
+    </div>
+    <div id="graph-container"><svg id="graphSvg"></svg></div>
+  </div>
+</div>
+
+<!-- Ingest Modal -->
+<div class="modal-overlay" id="ingestModal">
+  <div class="modal">
+    <h3>Ingest URL</h3>
+    <input type="text" id="ingestUrl" placeholder="Paste URL here..." />
+    <select id="ingestCategory"><option value="">No category</option></select>
+    <div class="modal-actions">
+      <button onclick="hideModal('ingestModal')">Cancel</button>
+      <button class="primary" onclick="doIngest()" id="ingestBtn">Ingest</button>
+    </div>
+    <div class="modal-status" id="ingestStatus"></div>
+  </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal-overlay" id="categoryModal">
+  <div class="modal">
+    <h3>New Category</h3>
+    <input type="text" id="newCategoryName" placeholder="Category name..." />
+    <input type="text" id="newCategoryColor" placeholder="Color (e.g. #89b4fa)" value="#89b4fa" />
+    <div class="modal-actions">
+      <button onclick="hideModal('categoryModal')">Cancel</button>
+      <button class="primary" onclick="createCategory()">Create</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────
+let currentView = 'notes';
+let allSources = [];
+let categories = [];
+let graphData = null;
+let simulation = null;
+let currentFilter = 'all';
+let currentCategoryId = null;
+let editingNoteId = null;
+let isPreview = false;
+
+// ── Init ───────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // Check if setup is needed
+  try {
+    const status = await (await fetch('/api/setup/status')).json();
+    if (!status.configured) {
+      document.getElementById('setupOverlay').style.display = 'block';
+      return;
+    }
+  } catch (e) { console.warn('Setup check failed:', e); }
+
+  await Promise.all([loadStats(), loadSources(), loadCategories()]);
+  setupSearch();
+  setupResize();
+  setupKeyboard();
+});
+
+// ── Setup Wizard Functions ────────────────────────────────────
+
+function updateSetupPlatforms() {
+  const tg = document.getElementById('setupTelegram').checked;
+  const dc = document.getElementById('setupDiscord').checked;
+  document.getElementById('setupTelegramSection').style.display = tg ? 'block' : 'none';
+  document.getElementById('setupDiscordSection').style.display = dc ? 'block' : 'none';
+
+  const hasAny = tg || dc;
+  const btn = document.getElementById('setupSaveBtn');
+  btn.disabled = !hasAny;
+  btn.style.opacity = hasAny ? '1' : '0.5';
+}
+
+async function validateToken(platform) {
+  const tokenEl = platform === 'telegram' ? 'setupTgToken' : 'setupDcToken';
+  const statusEl = platform === 'telegram' ? 'setupTgStatus' : 'setupDcStatus';
+  const token = document.getElementById(tokenEl).value.trim();
+  const el = document.getElementById(statusEl);
+
+  if (!token) { el.innerHTML = '<span style="color:var(--red)">Enter a token first</span>'; return; }
+  el.innerHTML = '<span style="color:var(--subtext)">Validating...</span>';
+
+  try {
+    const resp = await fetch('/api/setup/validate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ platform, token })
+    });
+    const data = await resp.json();
+    if (data.valid) {
+      el.innerHTML = `<span style="color:var(--green)">Valid! Bot: ${data.name}</span>`;
+    } else {
+      el.innerHTML = `<span style="color:var(--red)">Invalid: ${data.error}</span>`;
+    }
+  } catch (e) {
+    el.innerHTML = `<span style="color:var(--red)">Error: ${e.message}</span>`;
+  }
+}
+
+async function saveSetup() {
+  const statusEl = document.getElementById('setupSaveStatus');
+  statusEl.innerHTML = '<span style="color:var(--subtext)">Saving...</span>';
+
+  const body = {
+    telegram_token: document.getElementById('setupTgToken')?.value?.trim() || '',
+    telegram_ids: document.getElementById('setupTgIds')?.value?.trim() || '',
+    discord_token: document.getElementById('setupDcToken')?.value?.trim() || '',
+    discord_ids: document.getElementById('setupDcIds')?.value?.trim() || '',
+    default_cwd: document.getElementById('setupCwd')?.value?.trim() || '',
+    default_model: document.getElementById('setupModel')?.value?.trim() || 'sonnet',
+  };
+
+  // Must have at least one token
+  if (!body.telegram_token && !body.discord_token) {
+    statusEl.innerHTML = '<span style="color:var(--red)">Configure at least one platform token</span>';
+    return;
+  }
+
+  try {
+    const resp = await fetch('/api/setup/save', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      statusEl.innerHTML = '<span style="color:var(--green)">Saved! Restart the app to connect your bots.</span>';
+      // Hide overlay after a moment and load the main UI
+      setTimeout(async () => {
+        document.getElementById('setupOverlay').style.display = 'none';
+        await Promise.all([loadStats(), loadSources(), loadCategories()]);
+        setupSearch();
+        setupResize();
+        setupKeyboard();
+      }, 2000);
+    } else {
+      statusEl.innerHTML = '<span style="color:var(--red)">Failed to save</span>';
+    }
+  } catch (e) {
+    statusEl.innerHTML = `<span style="color:var(--red)">Error: ${e.message}</span>`;
+  }
+}
+
+async function api(path, opts = {}) {
+  try {
+    const resp = await fetch(path, opts);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return await resp.json();
+  } catch (e) { console.error('API error:', path, e); return null; }
+}
+
+async function apiPost(path, body) {
+  return api(path, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+}
+async function apiPut(path, body) {
+  return api(path, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+}
+async function apiDelete(path) {
+  return api(path, { method: 'DELETE' });
+}
+
+// ── Stats ──────────────────────
+async function loadStats() {
+  const s = await api('/api/stats');
+  if (s) document.getElementById('statsBar').textContent =
+    `${s.entities} entities | ${s.relationships} rels | ${s.sources} sources | ${s.notes} notes`;
+}
+
+// ── Categories ─────────────────
+async function loadCategories() {
+  categories = await api('/api/categories') || [];
+  renderCategories();
+  updateCategorySelects();
+}
+
+function renderCategories() {
+  const tree = document.getElementById('categoryTree');
+  let html = `<div class="cat-item ${!currentCategoryId ? 'active' : ''}" onclick="filterByCategory(null)">
+    <span class="cat-dot" style="background:var(--text-muted)"></span>
+    <span>All</span>
+    <span class="cat-count">${allSources.length}</span>
+  </div>`;
+  for (const c of categories) {
+    html += `<div class="cat-item ${currentCategoryId === c.id ? 'active' : ''}" onclick="filterByCategory(${c.id})">
+      <span class="cat-dot" style="background:${c.color || 'var(--accent)'}"></span>
+      <span>${esc(c.name)}</span>
+      <span class="cat-count">${c.item_count}</span>
+      <button class="cat-delete" onclick="event.stopPropagation(); deleteCategory(${c.id})">&times;</button>
+    </div>`;
+  }
+  tree.innerHTML = html;
+}
+
+function updateCategorySelects() {
+  const opts = categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  document.getElementById('editorCategory').innerHTML = opts;
+  document.getElementById('ingestCategory').innerHTML = `<option value="">No category</option>${opts}`;
+}
+
+async function filterByCategory(catId) {
+  currentCategoryId = catId;
+  await loadSources();
+  renderCategories();
+}
+
+async function createCategory() {
+  const name = document.getElementById('newCategoryName').value.trim();
+  const color = document.getElementById('newCategoryColor').value.trim();
+  if (!name) return;
+  await apiPost('/api/categories', { name, color: color || null });
+  document.getElementById('newCategoryName').value = '';
+  hideModal('categoryModal');
+  await loadCategories();
+}
+
+async function deleteCategory(id) {
+  await apiDelete(`/api/categories/${id}`);
+  if (currentCategoryId === id) currentCategoryId = null;
+  await loadCategories();
+  await loadSources();
+}
+
+// ── Sources/Items ──────────────
+async function loadSources() {
+  const params = currentCategoryId ? `?category_id=${currentCategoryId}` : '';
+  allSources = await api(`/api/sources${params}`) || [];
+  renderItems();
+}
+
+function renderItems() {
+  const list = document.getElementById('sidebarList');
+  const title = document.getElementById('sidebarTitle');
+  let items = allSources;
+
+  if (currentFilter === 'notes') items = items.filter(s => s.is_note);
+  else if (currentFilter === 'sources') items = items.filter(s => !s.is_note);
+
+  title.textContent = `${currentCategoryId ? 'Filtered' : 'All'} (${items.length})`;
+
+  list.innerHTML = items.map(s => {
+    const isNote = s.is_note;
+    const badge = isNote ? 'note' : s.source_type;
+    return `<div class="sidebar-item" onclick="${isNote ? `openSource(${s.id})` : `openSource(${s.id})`}" data-id="${s.id}">
+      <div class="title">${esc(s.title || s.url || 'Untitled')}</div>
+      <div class="meta">
+        <span class="type-badge" style="${isNote ? 'background:var(--mauve);color:var(--bg-primary)' : ''}">${badge}</span>
+        <span>${s.entity_count} entities</span>
+        <span>${timeAgo(s.ingested_at)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderItems();
+}
+
+// ── Note/Source viewing ────────
+async function openSource(id) {
+  hideEditor();
+  const source = await api(`/api/sources/${id}`);
+  if (!source || source.error) return;
+  setActiveItem(id);
+
+  let html = `<div class="note-header">
+    <h1>${esc(source.title || 'Untitled')}</h1>
+    <div class="note-meta">
+      <span>Type: ${source.source_type}</span>
+      <span>${source.is_note ? 'Note' : 'Ingested'}: ${new Date(source.ingested_at).toLocaleString()}</span>
+      ${source.updated_at ? `<span>Edited: ${new Date(source.updated_at).toLocaleString()}</span>` : ''}
+      ${source.url ? `<span><a href="${esc(source.url)}" target="_blank" style="color:var(--accent)">Open original</a></span>` : ''}
+      ${source.is_note ? `<button onclick="openNoteEditor(${id})" style="border:1px solid var(--border);background:var(--bg-surface);color:var(--accent);padding:3px 10px;border-radius:var(--radius);cursor:pointer;font-size:12px">Edit</button>` : ''}
+    </div>
+  </div>`;
+
+  if (source.categories && source.categories.length) {
+    html += `<div style="margin-bottom:12px;display:flex;gap:6px">`;
+    for (const c of source.categories) {
+      html += `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${c.color || 'var(--accent-dim)'};color:var(--bg-primary)">${esc(c.name)}</span>`;
+    }
+    html += `</div>`;
+  }
+
+  if (source.entities && source.entities.length) {
+    html += `<div class="entity-tags">`;
+    for (const e of source.entities) {
+      html += `<button class="entity-tag" data-type="${e.entity_type.toLowerCase()}" onclick="openEntity(${e.id})">${esc(e.name)}</button>`;
+    }
+    html += `</div>`;
+  }
+
+  if (source.summary) {
+    html += `<div class="note-body" style="margin-bottom:16px;padding:12px;background:var(--bg-surface);border-radius:var(--radius)">
+      <strong>Summary:</strong> ${esc(source.summary)}</div>`;
+  }
+
+  if (source.content_text) {
+    html += `<div class="note-body">${renderContent(source.content_text)}</div>`;
+  }
+
+  // Backlinks
+  const backlinks = await api(`/api/sources/${id}/backlinks`);
+  if (backlinks && backlinks.length) {
+    html += `<div class="relationships-section"><h3>Backlinks (shared entities)</h3>`;
+    for (const b of backlinks) {
+      html += `<div class="rel-item">
+        <span class="rel-target" onclick="openSource(${b.id})">${esc(b.title || b.url || 'Untitled')}</span>
+        <span class="type-badge" style="${b.is_note ? 'background:var(--mauve);color:var(--bg-primary)' : ''}">${b.is_note ? 'note' : b.source_type}</span>
+        <span style="font-size:11px;color:var(--text-muted)">${b.shared_entities} shared</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  showNote(html);
+}
+
+async function openEntity(id) {
+  hideEditor();
+  const entity = await api(`/api/entities/${id}`);
+  if (!entity || entity.error) return;
+  setActiveItem(id);
+
+  let html = `<div class="note-header">
+    <h1>${esc(entity.name)}</h1>
+    <div class="note-meta">
+      <span class="entity-tag" data-type="${entity.entity_type.toLowerCase()}" style="cursor:default">${entity.entity_type}</span>
+      <span>${entity.relationships.length} relationships</span>
+      <span>${entity.sources.length} sources</span>
+    </div>
+  </div>`;
+
+  if (entity.description) html += `<div class="note-body"><p>${esc(entity.description)}</p></div>`;
+
+  if (entity.relationships.length) {
+    html += `<div class="relationships-section"><h3>Relationships</h3>`;
+    for (const r of entity.relationships) {
+      if (r.source_name === entity.name) {
+        html += `<div class="rel-item"><span class="rel-type">${esc(r.relationship_type)}</span><span>&rarr;</span>
+          <span class="rel-target" onclick="openEntity(${r.target_id})">${esc(r.target_name)}</span>
+          <span style="font-size:11px;color:var(--text-muted)">(${r.target_type})</span></div>`;
+      } else {
+        html += `<div class="rel-item"><span class="rel-target" onclick="openEntity(${r.source_id})">${esc(r.source_name)}</span>
+          <span style="font-size:11px;color:var(--text-muted)">(${r.source_type})</span><span>&rarr;</span>
+          <span class="rel-type">${esc(r.relationship_type)}</span><span>&rarr;</span>
+          <span style="font-weight:500">${esc(entity.name)}</span></div>`;
+      }
+    }
+    html += `</div>`;
+  }
+
+  if (entity.sources.length) {
+    html += `<div class="relationships-section"><h3>Appears in</h3>`;
+    for (const s of entity.sources) {
+      html += `<div class="rel-item">
+        <span class="rel-target" onclick="openSource(${s.id})">${esc(s.title || s.url || 'Untitled')}</span>
+        <span class="type-badge" style="${s.is_note ? 'background:var(--mauve);color:var(--bg-primary)' : ''}">${s.is_note ? 'note' : s.source_type}</span>
+        <span style="font-size:11px;color:var(--text-muted)">${timeAgo(s.ingested_at)}</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  showNote(html);
+}
+
+function showNote(html) {
+  document.getElementById('welcomeState').style.display = 'none';
+  document.getElementById('noteEditor').classList.remove('active');
+  const nc = document.getElementById('noteContent');
+  nc.style.display = 'block';
+  nc.innerHTML = html;
+}
+
+function hideEditor() {
+  document.getElementById('noteEditor').classList.remove('active');
+  editingNoteId = null;
+  isPreview = false;
+}
+
+function setActiveItem(id) {
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  const el = document.querySelector(`.sidebar-item[data-id="${id}"]`);
+  if (el) el.classList.add('active');
+}
+
+// ── Note Editor ────────────────
+async function openNoteEditor(existingId = null) {
+  document.getElementById('welcomeState').style.display = 'none';
+  document.getElementById('noteContent').style.display = 'none';
+  const editor = document.getElementById('noteEditor');
+  editor.classList.add('active');
+  isPreview = false;
+  document.getElementById('editorContent').style.display = '';
+  document.getElementById('editorPreview').style.display = 'none';
+  document.getElementById('editorStatus').textContent = '';
+
+  if (existingId) {
+    const source = await api(`/api/sources/${existingId}`);
+    if (!source) return;
+    editingNoteId = existingId;
+    document.getElementById('editorTitle').value = source.title || '';
+    document.getElementById('editorContent').value = source.content_text || '';
+    document.getElementById('editorDeleteBtn').style.display = '';
+    // Select categories
+    const sel = document.getElementById('editorCategory');
+    const catIds = (source.categories || []).map(c => c.id);
+    Array.from(sel.options).forEach(o => { o.selected = catIds.includes(parseInt(o.value)); });
+  } else {
+    editingNoteId = null;
+    document.getElementById('editorTitle').value = '';
+    document.getElementById('editorContent').value = '';
+    document.getElementById('editorDeleteBtn').style.display = 'none';
+    Array.from(document.getElementById('editorCategory').options).forEach(o => { o.selected = false; });
+  }
+  document.getElementById('editorTitle').focus();
+}
+
+function togglePreview() {
+  isPreview = !isPreview;
+  const ta = document.getElementById('editorContent');
+  const pv = document.getElementById('editorPreview');
+  if (isPreview) {
+    ta.style.display = 'none';
+    pv.style.display = 'block';
+    pv.innerHTML = renderContent(ta.value);
+  } else {
+    ta.style.display = '';
+    pv.style.display = 'none';
+  }
+}
+
+function cancelEditor() {
+  hideEditor();
+  document.getElementById('noteContent').style.display = 'none';
+  document.getElementById('welcomeState').style.display = 'flex';
+}
+
+async function saveNote() {
+  const title = document.getElementById('editorTitle').value.trim();
+  const content = document.getElementById('editorContent').value;
+  const sel = document.getElementById('editorCategory');
+  const categoryIds = Array.from(sel.selectedOptions).map(o => parseInt(o.value));
+
+  if (!title) { document.getElementById('editorStatus').textContent = 'Title required'; return; }
+
+  document.getElementById('editorStatus').textContent = 'Saving & extracting entities...';
+
+  let result;
+  if (editingNoteId) {
+    result = await apiPut(`/api/notes/${editingNoteId}`, { title, content, category_ids: categoryIds });
+  } else {
+    result = await apiPost('/api/notes', { title, content, category_ids: categoryIds });
+  }
+
+  if (result && result.id) {
+    document.getElementById('editorStatus').textContent =
+      `Saved. ${result.entity_count} entities, ${result.rel_count} relationships extracted.`;
+    editingNoteId = result.id;
+    document.getElementById('editorDeleteBtn').style.display = '';
+    await Promise.all([loadSources(), loadStats(), loadCategories()]);
+    // Show the saved note
+    setTimeout(() => openSource(result.id), 500);
+  } else {
+    document.getElementById('editorStatus').textContent = 'Error saving note.';
+  }
+}
+
+async function deleteCurrentNote() {
+  if (!editingNoteId) return;
+  if (!confirm('Delete this note?')) return;
+  await apiDelete(`/api/sources/${editingNoteId}`);
+  hideEditor();
+  document.getElementById('welcomeState').style.display = 'flex';
+  document.getElementById('noteContent').style.display = 'none';
+  editingNoteId = null;
+  await Promise.all([loadSources(), loadStats(), loadCategories()]);
+}
+
+// ── URL Ingestion ──────────────
+async function doIngest() {
+  const url = document.getElementById('ingestUrl').value.trim();
+  if (!url) return;
+  const catSel = document.getElementById('ingestCategory');
+  const catId = catSel.value ? [parseInt(catSel.value)] : [];
+
+  document.getElementById('ingestStatus').textContent = 'Ingesting... this may take a moment.';
+  document.getElementById('ingestBtn').disabled = true;
+
+  const result = await apiPost('/api/ingest', { url, category_ids: catId });
+
+  document.getElementById('ingestBtn').disabled = false;
+
+  if (result && result.success) {
+    document.getElementById('ingestStatus').textContent =
+      `Done! ${result.entity_count} entities, ${result.rel_count} relationships.`;
+    document.getElementById('ingestUrl').value = '';
+    await Promise.all([loadSources(), loadStats(), loadCategories()]);
+    setTimeout(() => {
+      hideModal('ingestModal');
+      document.getElementById('ingestStatus').textContent = '';
+      openSource(result.source_id);
+    }, 1000);
+  } else {
+    document.getElementById('ingestStatus').textContent = `Error: ${result?.error || 'Unknown error'}`;
+  }
+}
+
+// ── Search ─────────────────────
+function setupSearch() {
+  const input = document.getElementById('searchInput');
+  let timer;
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const q = input.value.trim();
+      if (q.length > 0) {
+        const entities = await api(`/api/entities?q=${encodeURIComponent(q)}&limit=200`) || [];
+        const list = document.getElementById('sidebarList');
+        document.getElementById('sidebarTitle').textContent = `Search (${entities.length})`;
+        list.innerHTML = entities.map(e => `
+          <div class="sidebar-item" onclick="openEntity(${e.id})" data-id="${e.id}">
+            <div class="title">${esc(e.name)}</div>
+            <div class="meta">
+              <span class="type-badge">${e.entity_type}</span>
+              <span>${e.source_count} sources</span>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        renderItems();
+      }
+    }, 250);
+  });
+}
+
+// ── View switching ─────────────
+function switchView(view, btn) {
+  currentView = view;
+  document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else document.querySelector(`.tab-bar button[data-view="${view}"]`)?.classList.add('active');
+
+  if (view === 'graph') {
+    document.getElementById('notesView').style.display = 'none';
+    document.getElementById('graph-container').classList.add('active');
+    requestAnimationFrame(() => { if (!graphData) loadGraph(); else renderGraph(); });
+  } else {
+    document.getElementById('notesView').style.display = 'block';
+    document.getElementById('graph-container').classList.remove('active');
+  }
+}
+
+function switchToNotes() {
+  switchView('notes');
+}
+
+// ── Graph ──────────────────────
+async function loadGraph() { graphData = await api('/api/graph'); if (graphData) renderGraph(); }
+
+function renderGraph() {
+  const svg = d3.select('#graphSvg');
+  svg.selectAll('*').remove();
+  if (simulation) { simulation.stop(); simulation = null; }
+
+  const container = document.getElementById('graph-container');
+  const width = container.clientWidth || 800;
+  const height = container.clientHeight || 600;
+
+  if (!graphData || !graphData.nodes.length) return;
+
+  svg.attr('width', width).attr('height', height).attr('viewBox', [0, 0, width, height]);
+  const g = svg.append('g');
+  svg.call(d3.zoom().scaleExtent([0.1, 8]).on('zoom', e => g.attr('transform', e.transform)));
+
+  const colorMap = { person:'#89b4fa', organization:'#cba6f7', org:'#cba6f7', concept:'#a6e3a1', technology:'#fab387',
+    location:'#94e2d5', place:'#94e2d5', event:'#f9e2af', product:'#f38ba8', topic:'#a6e3a1' };
+  const nodeColor = t => colorMap[t.toLowerCase()] || '#6c7086';
+
+  const nodes = graphData.nodes.map(d => ({...d}));
+  const links = graphData.links.map(d => ({...d}));
+
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(80))
+    .force('charge', d3.forceManyBody().strength(-200))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius(20));
+
+  const link = g.append('g').selectAll('line').data(links).join('line')
+    .attr('class', 'graph-link').attr('stroke-width', d => Math.max(1, d.weight || 1));
+  const linkLabel = g.append('g').selectAll('text').data(links).join('text')
+    .attr('class', 'graph-link-label').text(d => d.relationship_type);
+  const node = g.append('g').selectAll('g').data(nodes).join('g').attr('class', 'graph-node')
+    .call(d3.drag().on('start', ds).on('drag', dd).on('end', de));
+  node.append('circle').attr('r', d => 5 + Math.min(d.rel_count || 0, 20))
+    .attr('fill', d => nodeColor(d.entity_type)).attr('stroke', d => d3.color(nodeColor(d.entity_type)).darker(0.5));
+  node.append('text').text(d => d.name).attr('dy', d => -(8 + Math.min(d.rel_count || 0, 20)));
+  node.on('click', (ev, d) => { switchToNotes(); openEntity(d.id); });
+  node.append('title').text(d => `${d.name} (${d.entity_type})\n${d.rel_count} rels, ${d.source_count} sources`);
+
+  simulation.on('tick', () => {
+    link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    linkLabel.attr('x', d => (d.source.x + d.target.x)/2).attr('y', d => (d.source.y + d.target.y)/2);
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+
+  function ds(e) { if (!e.active) simulation.alphaTarget(0.3).restart(); e.subject.fx = e.subject.x; e.subject.fy = e.subject.y; }
+  function dd(e) { e.subject.fx = e.x; e.subject.fy = e.y; }
+  function de(e) { if (!e.active) simulation.alphaTarget(0); e.subject.fx = null; e.subject.fy = null; }
+}
+
+// ── Modals ─────────────────────
+function showModal(id) { document.getElementById(id).classList.add('active'); }
+function hideModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ── Content rendering ──────────
+function renderContent(text) {
+  if (!text) return '';
+  // Wiki-links: [[Entity Name]] → clickable
+  text = text.replace(/\[\[([^\]]+)\]\]/g, (m, name) =>
+    `<a class="wiki-link" href="#" onclick="searchAndOpenEntity('${name.replace(/'/g,"\\'")}'); return false;">${name}</a>`
+  );
+  try { if (typeof marked !== 'undefined') return marked.parse(text); } catch (e) {}
+  return `<pre style="white-space:pre-wrap;word-break:break-word;">${esc(text)}</pre>`;
+}
+
+async function searchAndOpenEntity(name) {
+  const results = await api(`/api/entities?q=${encodeURIComponent(name)}&limit=1`);
+  if (results && results.length) openEntity(results[0].id);
+}
+
+// ── Keyboard ───────────────────
+function setupKeyboard() {
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'n') { e.preventDefault(); openNoteEditor(); }
+    if (e.ctrlKey && e.key === 's' && document.getElementById('noteEditor').classList.contains('active')) {
+      e.preventDefault(); saveNote();
+    }
+  });
+}
+
+// ── Resize ─────────────────────
+function setupResize() {
+  const handle = document.getElementById('resizeHandle');
+  const sidebar = document.getElementById('sidebar');
+  let startX, startW;
+  handle.addEventListener('mousedown', e => {
+    startX = e.clientX; startW = sidebar.offsetWidth;
+    const move = e => { const w = startW + (e.clientX - startX); if (w >= 180 && w <= 600) sidebar.style.width = w + 'px'; };
+    const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+    e.preventDefault();
+  });
+}
+
+// ── Utilities ──────────────────
+function esc(s) { if (!s) return ''; const e = document.createElement('span'); e.textContent = s; return e.innerHTML; }
+function timeAgo(d) {
+  if (!d) return '';
+  const diff = (new Date() - new Date(d)) / 1000;
+  if (diff < 60) return 'just now'; if (diff < 3600) return Math.floor(diff/60)+'m ago';
+  if (diff < 86400) return Math.floor(diff/3600)+'h ago'; if (diff < 604800) return Math.floor(diff/86400)+'d ago';
+  return new Date(d).toLocaleDateString();
+}
+</script>
+</body>
+</html>

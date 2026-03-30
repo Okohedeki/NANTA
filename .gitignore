@@ -3,3 +3,8 @@ __pycache__/
 *.pyc
 .venv/
 .claude/
+data/
+*.db
+build/
+dist/
+*.spec

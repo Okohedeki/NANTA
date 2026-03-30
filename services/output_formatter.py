@@ -1,8 +1,8 @@
-TELEGRAM_MAX = 4096
+MAX_MESSAGE_LENGTH = 4096
 
 
-def chunk_message(text: str, max_len: int = TELEGRAM_MAX) -> list[str]:
-    """Split text into chunks that fit within Telegram's message limit.
+def chunk_message(text: str, max_len: int = MAX_MESSAGE_LENGTH) -> list[str]:
+    """Split text into chunks that fit within a platform's message limit.
 
     Splits on newline boundaries when possible.
     """
