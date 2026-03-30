@@ -8,3 +8,4 @@ data/
 build/
 dist/
 *.spec
+installer_output/
