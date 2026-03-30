@@ -1,6 +1,6 @@
-# Nexus
+# NANTA
 
-A knowledge graph desktop app. Send URLs, audio, video, or PDFs from Telegram or Discord and Nexus auto-extracts entities, relationships, and detailed summaries into a searchable, visual knowledge graph.
+A knowledge graph desktop app. Send URLs, audio, video, or PDFs from Telegram or Discord and NANTA auto-extracts entities, relationships, and detailed summaries into a searchable, visual knowledge graph.
 
 ## Features
 
@@ -25,7 +25,7 @@ A knowledge graph desktop app. Send URLs, audio, video, or PDFs from Telegram or
 
 ```bash
 git clone <your-repo-url>
-cd Nexus
+cd NANTA
 pip install -r requirements.txt
 ```
 
@@ -52,7 +52,7 @@ Everything appears in the desktop Knowledge Graph UI — browse entities, view s
 ## Architecture
 
 ```
-Nexus
+NANTA
 ├── launcher.py              # Entry point: starts all processes
 ├── config.py                # Multi-platform config loader
 ├── core/                    # Platform-agnostic logic
@@ -107,7 +107,7 @@ Build a standalone Windows desktop app:
 python build.py
 ```
 
-Output: `dist/Nexus/Nexus.exe`
+Output: `dist/NANTA/NANTA.exe`
 
 To auto-start on login:
 

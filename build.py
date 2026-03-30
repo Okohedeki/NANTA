@@ -1,11 +1,11 @@
-"""Build Nexus into a standalone desktop app using PyInstaller."""
+"""Build NANTA into a standalone desktop app using PyInstaller."""
 
 import PyInstaller.__main__
 import os
 
 here = os.path.dirname(os.path.abspath(__file__))
 
-# Packages that are NOT needed by Nexus but get dragged in
+# Packages that are NOT needed by NANTA but get dragged in
 # from the global Python environment
 EXCLUDES = [
     # ML / deep learning
@@ -51,7 +51,7 @@ EXCLUDES = [
 
 args = [
     os.path.join(here, "launcher.py"),
-    "--name", "Nexus",
+    "--name", "NANTA",
     "--onedir",
     "--windowed",
     # Include all project packages and web assets

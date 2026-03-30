@@ -1,4 +1,4 @@
-"""Launch Nexus: platform bots + Knowledge Graph desktop UI."""
+"""Launch NANTA: platform bots + Knowledge Graph desktop UI."""
 
 import multiprocessing
 import os
@@ -42,7 +42,7 @@ def main():
         platforms_active.append("Discord")
 
     print("=" * 50)
-    print("  Nexus")
+    print("  NANTA")
     print("=" * 50)
     if platforms_active:
         print(f"  Platforms: {', '.join(platforms_active)}")
@@ -81,7 +81,7 @@ def main():
     # Open native desktop window
     import webview
     window = webview.create_window(
-        "Nexus",
+        "NANTA",
         url=url,
         width=1200,
         height=800,

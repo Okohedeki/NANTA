@@ -321,7 +321,7 @@ async def _extract_reddit(
         async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
             resp = await client.get(
                 json_url,
-                headers={"User-Agent": "Nexus/2.0"},
+                headers={"User-Agent": "NANTA/2.0"},
             )
             resp.raise_for_status()
             data = resp.json()

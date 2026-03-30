@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nexus - Knowledge Graph</title>
+<title>NANTA - Knowledge Graph</title>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
@@ -265,14 +265,14 @@ a.wiki-link:hover { color: var(--accent); border-color: var(--accent); }
 <!-- Setup Wizard Overlay -->
 <div id="setupOverlay" style="display:none; position:fixed; inset:0; z-index:10000; background:var(--bg); overflow-y:auto;">
   <div style="max-width:600px; margin:60px auto; padding:0 24px;">
-    <h1 style="color:var(--accent); margin-bottom:4px;">Nexus</h1>
+    <h1 style="color:var(--accent); margin-bottom:4px;">NANTA</h1>
     <p style="color:var(--subtext); margin-bottom:32px;">Welcome! Configure at least one messaging platform to get started.</p>
 
     <div id="setupSteps">
       <!-- Step 0: LLM Provider -->
       <div id="setupStep0">
         <h3 style="color:var(--text);">1. LLM Provider</h3>
-        <p style="color:var(--subtext); font-size:13px;">Nexus needs an AI backend. Select one below — detected providers are marked.</p>
+        <p style="color:var(--subtext); font-size:13px;">NANTA needs an AI backend. Select one below — detected providers are marked.</p>
         <div id="providerOptions" style="margin:12px 0;"></div>
         <div id="providerInstall" style="margin-top:8px; font-size:13px;"></div>
         <div id="ollamaModelRow" style="display:none; margin-top:12px;">
@@ -367,7 +367,7 @@ a.wiki-link:hover { color: var(--accent); border-color: var(--accent); }
 </div>
 
 <div class="topbar">
-  <div class="logo">Nexus</div>
+  <div class="logo">NANTA</div>
   <div class="search"><input type="text" id="searchInput" placeholder="Search entities, sources, notes..." /></div>
   <div class="tab-bar">
     <button class="active" data-view="notes" onclick="switchView('notes', this)">Notes</button>
@@ -539,7 +539,7 @@ function selectProvider(name, providers) {
   const info = providers?.[name];
   const installEl = document.getElementById('providerInstall');
   if (info && !info.available) {
-    installEl.innerHTML = `<span style="color:var(--peach);">Install ${PROVIDER_INFO[name]?.label || name} first, then restart Nexus.</span>`;
+    installEl.innerHTML = `<span style="color:var(--peach);">Install ${PROVIDER_INFO[name]?.label || name} first, then restart NANTA.</span>`;
   } else {
     installEl.innerHTML = '';
   }
