@@ -9,7 +9,21 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+      - run: python -m pytest tests/ -v --tb=short
+
   build:
+    needs: test
     runs-on: windows-latest
 
     steps:
@@ -39,11 +53,13 @@ jobs:
         run: choco install innosetup --yes --no-progress
         shell: pwsh
 
-      - name: Update installer version
+      - name: Update version strings
         run: |
           $tag = "${{ github.ref_name }}".TrimStart("v")
           (Get-Content installer.iss) -replace '#define MyAppVersion "1.0.0"', "#define MyAppVersion `"$tag`"" |
             Set-Content installer.iss
+          (Get-Content web/server.py) -replace 'APP_VERSION = ".*?"', "APP_VERSION = `"$tag`"" |
+            Set-Content web/server.py
         shell: pwsh
 
       - name: Build installer
