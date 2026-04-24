@@ -11,6 +11,7 @@ from services.knowledge_graph import (
     get_source_id_by_url,
     get_thread,
     list_discoveries,
+    log_event,
     update_thread,
 )
 from services.providers.detection import get_provider
@@ -152,7 +153,8 @@ async def _already_discovered_urls(db, thread_id: int) -> set[str]:
     return {row[0] for row in await cursor.fetchall() if row[0]}
 
 
-async def run_research_poll(db, thread_id: int, model: str = "sonnet") -> dict:
+async def run_research_poll(db, thread_id: int, model: str = "sonnet",
+                              job_id: int | None = None) -> dict:
     """Discover + ingest new sources for one thread. Returns summary dict."""
     thread = await get_thread(db, thread_id)
     if not thread:
@@ -160,35 +162,36 @@ async def run_research_poll(db, thread_id: int, model: str = "sonnet") -> dict:
 
     queries = await generate_research_queries(db, thread, model=model)
     logger.info("Thread %s queries: %s", thread_id, queries)
+    await log_event(db, "queries", json.dumps({"thread_id": thread_id, "queries": queries}), job_id=job_id)
 
     seen_urls = await _already_discovered_urls(db, thread_id)
     seen_urls_lower = {u.lower() for u in seen_urls}
 
-    candidates = []  # list of (url, title, snippet, query)
+    candidates = []
     per_query = max(3, thread["max_per_poll"] * 2)
     for q in queries:
         results = await search_web(q, max_results=per_query)
         for r in results:
             url = (r.get("url") or "").strip()
-            if not url:
-                continue
-            if url.lower() in seen_urls_lower:
+            if not url or url.lower() in seen_urls_lower:
                 continue
             seen_urls_lower.add(url.lower())
             candidates.append({"url": url, "title": r.get("title", ""),
-                                "snippet": r.get("snippet", ""), "query": q})
+                                "snippet": r.get("snippet", ""),
+                                "kind": r.get("kind", "text"), "query": q})
 
     cap = thread["max_per_poll"]
     candidates = candidates[:cap]
+    for c in candidates:
+        await log_event(db, "candidate",
+                        f"[{c['kind']}] {c['url']} (q: {c['query']})", job_id=job_id)
 
     from services.ingestion_service import ingest_url
     tmp_dir = os.path.join(
         os.path.dirname(os.environ.get("KG_DB_PATH", "data/knowledge.db")), "tmp"
     )
 
-    discovered = []
-    skipped = []
-    failed = []
+    discovered, skipped, failed = [], [], []
     total_cost = 0.0
 
     for cand in candidates:
@@ -198,17 +201,24 @@ async def run_research_poll(db, thread_id: int, model: str = "sonnet") -> dict:
             disc_id = await add_discovery(db, thread_id, existing_sid, query=cand["query"])
             if disc_id:
                 discovered.append({"source_id": existing_sid, "url": url, "reused": True})
+                await log_event(db, "ingest",
+                                f"reuse #{existing_sid} {url}", job_id=job_id)
             else:
                 skipped.append(url)
+                await log_event(db, "skip", f"already in graph: {url}", job_id=job_id)
             continue
         result = await ingest_url(db, url, model=model, tmp_dir=tmp_dir)
         if not result.get("success"):
             failed.append({"url": url, "error": result.get("error", "?")})
+            await log_event(db, "error",
+                            f"{url} — {result.get('error', '?')}", job_id=job_id)
             continue
         sid = result["source_id"]
         total_cost += result.get("cost_usd", 0.0)
         await add_discovery(db, thread_id, sid, query=cand["query"])
         discovered.append({"source_id": sid, "url": url, "title": result.get("title", "")})
+        await log_event(db, "ingest",
+                        f"#{sid} {result.get('title','')[:70]} — {url}", job_id=job_id)
 
     await update_thread(db, thread_id, mark_polled=True)
     return {
@@ -280,7 +290,8 @@ async def _generate_topic_queries(db, entity_id: int, entity_name: str,
 
 
 async def run_topic_poll(db, entity_id: int, entity_name: str,
-                          max_per_poll: int = 3, model: str = "sonnet") -> dict:
+                          max_per_poll: int = 3, model: str = "sonnet",
+                          job_id: int | None = None) -> dict:
     """Search and ingest new sources for a graph topic (no article required)."""
     from services.graph_intel import record_attention
     from services.knowledge_graph import get_source_id_by_url
@@ -289,6 +300,9 @@ async def run_topic_poll(db, entity_id: int, entity_name: str,
 
     queries = await _generate_topic_queries(db, entity_id, entity_name, model=model)
     logger.info("Topic %s queries: %s", entity_name, queries)
+    await log_event(db, "queries",
+                    json.dumps({"topic": entity_name, "queries": queries}),
+                    job_id=job_id)
 
     seen = set()
     candidates = []
@@ -300,8 +314,13 @@ async def run_topic_poll(db, entity_id: int, entity_name: str,
                 continue
             seen.add(url.lower())
             candidates.append({"url": url, "query": q,
-                                "title": r.get("title", ""), "snippet": r.get("snippet", "")})
+                                "title": r.get("title", ""),
+                                "snippet": r.get("snippet", ""),
+                                "kind": r.get("kind", "text")})
     candidates = candidates[:max_per_poll]
+    for c in candidates:
+        await log_event(db, "candidate",
+                        f"[{c['kind']}] {c['url']} (q: {c['query']})", job_id=job_id)
 
     tmp_dir = os.path.join(
         os.path.dirname(os.environ.get("KG_DB_PATH", "data/knowledge.db")), "tmp"
@@ -313,14 +332,20 @@ async def run_topic_poll(db, entity_id: int, entity_name: str,
         existing = await get_source_id_by_url(db, url)
         if existing:
             skipped.append(url)
+            await log_event(db, "skip", f"already in graph: {url}", job_id=job_id)
             continue
         result = await ingest_url(db, url, model=model, tmp_dir=tmp_dir)
         if not result.get("success"):
             failed.append({"url": url, "error": result.get("error", "?")})
+            await log_event(db, "error",
+                            f"{url} — {result.get('error', '?')}", job_id=job_id)
             continue
         cost += result.get("cost_usd", 0.0)
         discovered.append({"source_id": result["source_id"], "url": url,
                             "title": result.get("title", ""), "query": cand["query"]})
+        await log_event(db, "ingest",
+                        f"#{result['source_id']} {result.get('title','')[:70]} — {url}",
+                        job_id=job_id)
 
     await record_attention(db, entity_id, "research",
                             detail=f"discovered={len(discovered)}")

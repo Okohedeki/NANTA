@@ -133,6 +133,17 @@ CREATE TABLE IF NOT EXISTS topic_attention (
 );
 
 CREATE INDEX IF NOT EXISTS idx_topic_attention_entity ON topic_attention(entity_id, attention_kind, occurred_at);
+
+CREATE TABLE IF NOT EXISTS research_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER,
+    kind TEXT NOT NULL,             -- queries | candidate | skip | ingest | error | info
+    detail TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_research_events_created ON research_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_research_events_job ON research_events(job_id);
 """
 
 
@@ -1029,3 +1040,41 @@ async def get_source_id_by_url(conn: aiosqlite.Connection, url: str) -> int | No
     cursor = await conn.execute("SELECT id FROM sources WHERE url = ?", (url,))
     row = await cursor.fetchone()
     return row[0] if row else None
+
+
+# ── Research / ingestion event log ────────────────────────────────
+
+async def log_event(
+    conn: aiosqlite.Connection,
+    kind: str,
+    detail: str = "",
+    job_id: int | None = None,
+) -> int:
+    cursor = await conn.execute(
+        "INSERT INTO research_events (job_id, kind, detail) VALUES (?, ?, ?)",
+        (job_id, kind, detail),
+    )
+    await conn.commit()
+    return cursor.lastrowid
+
+
+async def list_events(
+    conn: aiosqlite.Connection,
+    limit: int = 50,
+    job_id: int | None = None,
+    kinds: list[str] | None = None,
+) -> list[dict]:
+    q = "SELECT * FROM research_events"
+    clauses, params = [], []
+    if job_id is not None:
+        clauses.append("job_id = ?"); params.append(job_id)
+    if kinds:
+        placeholders = ",".join("?" * len(kinds))
+        clauses.append(f"kind IN ({placeholders})")
+        params.extend(kinds)
+    if clauses:
+        q += " WHERE " + " AND ".join(clauses)
+    q += " ORDER BY id DESC LIMIT ?"
+    params.append(limit)
+    cursor = await conn.execute(q, params)
+    return [dict(r) for r in await cursor.fetchall()]

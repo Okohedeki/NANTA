@@ -877,6 +877,41 @@ async def trigger_auto_podcast():
         await db.close()
 
 
+@app.get("/api/research-events")
+async def list_research_events(
+    limit: int = Query(100),
+    job_id: int | None = Query(None),
+    kinds: str = Query(""),
+):
+    db = await get_db()
+    try:
+        from services.knowledge_graph import list_events
+        kind_list = [k.strip() for k in kinds.split(",") if k.strip()] or None
+        return await list_events(db, limit=limit, job_id=job_id, kinds=kind_list)
+    finally:
+        await db.close()
+
+
+@app.post("/api/auto/reclassify")
+async def trigger_reclassify():
+    """Reclassify every source in the DB. Runs in the background."""
+    import asyncio as _asyncio
+    import aiosqlite as _aiosqlite
+
+    async def _work():
+        conn = await _aiosqlite.connect(DB_PATH)
+        conn.row_factory = _aiosqlite.Row
+        try:
+            from services.categorizer import reclassify_all_sources
+            model = os.environ.get("DEFAULT_MODEL", "sonnet")
+            await reclassify_all_sources(conn, model=model)
+        finally:
+            await conn.close()
+
+    _asyncio.create_task(_work())
+    return {"success": True, "status": "started"}
+
+
 # ── App lifecycle ────────────────────────────────────────────────
 
 

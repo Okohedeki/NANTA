@@ -223,15 +223,16 @@ async def generate_content(
             model, cost_usd, used_ids,
         )
 
-        # Auto-create a research thread for every new article (best-effort)
-        if content_type == "article":
-            try:
-                from services.knowledge_graph import create_thread, get_thread_for_generated
-                if not await get_thread_for_generated(db, gen_id):
-                    await create_thread(db, gen_id, cadence_hours=24, max_per_poll=5)
-                    logger.info("Auto-created research thread for article %s", gen_id)
-            except Exception:
-                logger.exception("Failed to auto-create research thread for article %s", gen_id)
+        # Auto-create a research thread for every new piece of generated content
+        # (articles, newsletters, podcasts). Best-effort.
+        try:
+            from services.knowledge_graph import create_thread, get_thread_for_generated
+            if not await get_thread_for_generated(db, gen_id):
+                await create_thread(db, gen_id, cadence_hours=24, max_per_poll=5)
+                logger.info("Auto-created research thread for %s %s", content_type, gen_id)
+        except Exception:
+            logger.exception("Failed to auto-create research thread for %s %s",
+                             content_type, gen_id)
 
         return {
             "id": gen_id,

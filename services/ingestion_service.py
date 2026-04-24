@@ -90,6 +90,16 @@ async def ingest_url(
         except Exception:
             logger.exception("Auto-categorize failed for source %s", source_id)
 
+        # Pipeline-level ingestion log
+        try:
+            from services.knowledge_graph import log_event
+            await log_event(
+                db, "ingest",
+                f"#{source_id} [{content.source_type}] {(content.title or '')[:80]} — {url}",
+            )
+        except Exception:
+            logger.debug("ingest event log failed", exc_info=True)
+
         return {
             "success": True,
             "source_id": source_id,
@@ -103,6 +113,11 @@ async def ingest_url(
 
     except Exception as e:
         logger.exception("URL ingestion failed for %s", url)
+        try:
+            from services.knowledge_graph import log_event
+            await log_event(db, "error", f"ingest failed {url} — {e}")
+        except Exception:
+            pass
         return {"success": False, "error": str(e)}
 
 

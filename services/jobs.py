@@ -106,7 +106,7 @@ async def _run_research_job(db_path: str, job_id: int, thread_id: int, model: st
         await update_job(db, job_id, status="running", mark_started=True,
                          progress_note="Discovering related sources…")
         try:
-            result = await run_research_poll(db, thread_id, model=model)
+            result = await run_research_poll(db, thread_id, model=model, job_id=job_id)
         except Exception as e:
             logger.exception("Research job %s crashed", job_id)
             await update_job(db, job_id, status="failed",
@@ -147,7 +147,7 @@ async def _run_topic_research_job(db_path: str, job_id: int,
         await update_job(db, job_id, status="running", mark_started=True,
                          progress_note=f"Researching topic: {entity_name}")
         try:
-            result = await run_topic_poll(db, entity_id, entity_name, model=model)
+            result = await run_topic_poll(db, entity_id, entity_name, model=model, job_id=job_id)
         except Exception as e:
             logger.exception("Topic research job %s crashed", job_id)
             await update_job(db, job_id, status="failed",

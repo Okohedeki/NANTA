@@ -1446,6 +1446,17 @@ async function triggerAuto(kind) {
     showToast('Failed to trigger', 'error');
   }
 }
+
+async function triggerReclassify() {
+  if (!confirm('Re-run the LLM categorizer against every source? This will override existing categories and may take several minutes.')) return;
+  const r = await apiPost('/api/auto/reclassify', {});
+  if (r?.success) {
+    showToast('Reclassification started — watch the Activity log for progress.', 'info');
+    if (jobPollerRenderer) jobPollerRenderer();
+  } else {
+    showToast('Failed to start reclassification', 'error');
+  }
+}
 async function deleteJob(id) {
   await api(`/api/jobs/${id}`, { method: 'DELETE' });
   if (jobPollerRenderer) jobPollerRenderer();
@@ -1497,11 +1508,20 @@ async function loadCreateView() {
           <div class="h3">Jobs</div>
           <span class="muted" id="jobsSummary"></span>
         </div>
-        <div style="display:flex; gap:var(--space-2); margin-bottom:var(--space-3);">
+        <div style="display:flex; gap:var(--space-2); margin-bottom:var(--space-3); flex-wrap:wrap;">
           <button class="btn btn-ghost btn-sm" onclick="triggerAuto('topic_research')" title="Pick a hot graph topic and run a research poll">+ Spider research</button>
           <button class="btn btn-ghost btn-sm" onclick="triggerAuto('auto_podcast')" title="Pick a hot graph topic and generate a podcast briefing">+ Auto-podcast</button>
+          <button class="btn btn-ghost btn-sm" onclick="triggerReclassify()" title="Re-run the LLM categorizer against every source">Reclassify all</button>
         </div>
         <div id="jobsList"><div class="empty-state"><div>Loading…</div></div></div>
+
+        <div class="section-header" style="margin-top:var(--space-6);">
+          <div class="h3">Activity log</div>
+          <span class="muted" id="logSummary"></span>
+        </div>
+        <div id="activityLog" style="font-family:'JetBrains Mono', Consolas, ui-monospace, monospace; font-size:11px; line-height:1.55;">
+          <div class="empty-state"><div>Loading…</div></div>
+        </div>
 
         <div class="section-header" style="margin-top:var(--space-6);">
           <div class="h3">Library</div>
@@ -1518,7 +1538,37 @@ async function refreshCreatePanels() {
   const jobsEl = document.getElementById('jobsList');
   const libEl = document.getElementById('libraryList');
   const sumEl = document.getElementById('jobsSummary');
+  const logEl = document.getElementById('activityLog');
+  const logSumEl = document.getElementById('logSummary');
   if (!jobsEl || !libEl) return;  // view navigated away
+  if (logEl) {
+    const events = await api('/api/research-events?limit=40') || [];
+    if (events.length === 0) {
+      logEl.innerHTML = '<div class="empty-state"><div class="muted">No activity yet.</div></div>';
+    } else {
+      const colors = {
+        queries: 'var(--mauve)', candidate: 'var(--peach)', ingest: 'var(--green)',
+        skip: 'var(--text-muted)', error: 'var(--red)', info: 'var(--accent)',
+      };
+      logEl.innerHTML = events.map(e => {
+        const t = (e.created_at||'').replace('T',' ').slice(5, 19);
+        const kindColor = colors[e.kind] || 'var(--text-secondary)';
+        let detail = esc(e.detail || '');
+        // Expand the queries JSON blob into a readable list
+        if (e.kind === 'queries') {
+          try {
+            const parsed = JSON.parse(e.detail || '{}');
+            const qs = (parsed.queries || []).map(q => `• ${esc(q)}`).join('<br>');
+            const header = parsed.topic ? `topic ${esc(parsed.topic)}` : `thread ${esc(String(parsed.thread_id||''))}`;
+            detail = `<div style="color:var(--text-secondary);">${header}</div><div style="margin-left:8px;">${qs}</div>`;
+          } catch(_) {}
+        }
+        const jobBadge = e.job_id ? `<span style="color:var(--text-muted);">#${e.job_id}</span> ` : '';
+        return `<div style="padding:2px 0;"><span style="color:var(--text-muted);">${t}</span> ${jobBadge}<span style="color:${kindColor}; font-weight:500;">${e.kind}</span> ${detail}</div>`;
+      }).join('');
+    }
+    if (logSumEl) logSumEl.textContent = events.length ? `${events.length} events` : '';
+  }
 
   const [jobs, generated] = await Promise.all([
     fetchJobs(),
@@ -1637,14 +1687,14 @@ async function openGenerated(id) {
     html += '</div></div>';
   }
   // Evolving thread section (articles only for v1)
-  if ((data.content_type || '') === 'article') {
+  if (['article', 'newsletter', 'podcast_script'].includes(data.content_type || '')) {
     html += `<div id="threadSection" style="margin-top:32px; padding-top:20px; border-top:1px solid var(--border);">
       <div class="muted">Loading thread…</div>
     </div>`;
   }
   html += '</div>';
   content.innerHTML = html;
-  if ((data.content_type || '') === 'article') {
+  if (['article', 'newsletter', 'podcast_script'].includes(data.content_type || '')) {
     loadThreadSection(id);
   }
 }
