@@ -4,20 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NANTA - Knowledge Graph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
 :root {
-  --bg-primary: #1e1e2e;
-  --bg-secondary: #181825;
-  --bg-surface: #252536;
-  --bg-hover: #313244;
-  --text-primary: #cdd6f4;
+  --bg-primary: #0e0e16;
+  --bg-secondary: #14141f;
+  --bg-surface: #1c1c2a;
+  --bg-hover: #252536;
+  --text-primary: #e8eaf6;
   --text-secondary: #a6adc8;
   --text-muted: #6c7086;
   --accent: #89b4fa;
   --accent-hover: #a0c4fc;
-  --accent-dim: #45475a;
+  --accent-dim: #2a2a3d;
+  --gradient: linear-gradient(135deg, #89b4fa 0%, #cba6f7 50%, #f5c2e7 100%);
   --green: #a6e3a1;
   --red: #f38ba8;
   --yellow: #f9e2af;
@@ -73,8 +77,11 @@
 }
 .btn:hover { background: var(--bg-hover); }
 .btn:active { transform: translateY(1px); }
-.btn-primary { background: var(--accent); color: var(--bg-primary); font-weight: 600; }
-.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary {
+  background: var(--gradient); color: #1a1a2e; font-weight: 600;
+  box-shadow: 0 4px 14px rgba(137, 180, 250, 0.18);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(137, 180, 250, 0.28); }
 .btn-ghost { background: transparent; border-color: var(--border); }
 .btn-ghost:hover { background: var(--bg-hover); border-color: var(--bg-hover); }
 .btn-danger { background: var(--red); color: var(--bg-primary); }
@@ -159,14 +166,17 @@
 .job-delete:hover { background: var(--bg-hover); color: var(--red); }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   height: 100vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em;
 }
+::selection { background: rgba(137, 180, 250, 0.3); color: var(--text-primary); }
 
 /* ── Top Bar ─────────────────────── */
 .topbar {
@@ -174,7 +184,15 @@ body {
   background: var(--bg-secondary); border-bottom: 1px solid var(--border);
   gap: 16px; flex-shrink: 0;
 }
-.topbar .logo { font-weight: 700; font-size: 14px; color: var(--accent); white-space: nowrap; }
+.topbar .logo {
+  font-weight: 800; font-size: 14px; color: var(--text-primary); white-space: nowrap;
+  letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px;
+}
+.topbar .logo::before {
+  content: ''; width: 18px; height: 18px; border-radius: 5px;
+  background: var(--gradient); position: relative; flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(137,180,250,0.2);
+}
 .topbar .search { flex: 1; max-width: 400px; }
 .topbar .search input {
   width: 100%; padding: 6px 12px; border-radius: var(--radius);
@@ -185,11 +203,19 @@ body {
 .topbar .stats { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .tab-bar { display: flex; gap: 2px; }
 .tab-bar button {
-  padding: 5px 14px; border: none; background: none; color: var(--text-secondary);
-  cursor: pointer; font-size: 13px; border-radius: var(--radius) var(--radius) 0 0; transition: all 0.15s;
+  padding: 7px 14px; border: none; background: none; color: var(--text-secondary);
+  cursor: pointer; font-size: 13px; font-weight: 500;
+  border-radius: 8px; transition: all 0.15s;
+  position: relative;
 }
-.tab-bar button:hover { background: var(--bg-hover); }
-.tab-bar button.active { background: var(--bg-surface); color: var(--accent); }
+.tab-bar button:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+.tab-bar button.active {
+  color: var(--text-primary); background: rgba(255,255,255,0.06);
+}
+.tab-bar button.active::after {
+  content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 2px;
+  background: var(--gradient); border-radius: 2px 2px 0 0;
+}
 
 /* ── Main Layout ─────────────────── */
 .main { display: flex; flex: 1; overflow: hidden; }
@@ -292,9 +318,43 @@ body {
 .note-body hr, .md-content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 
 /* Polish — welcome, sidebar items, editor */
-.welcome { padding: var(--space-6); gap: var(--space-3); }
-.welcome h2 { font-size: var(--fs-xl); color: var(--text-primary); letter-spacing: -0.01em; }
-.welcome p  { color: var(--text-muted); }
+.welcome {
+  padding: var(--space-7) var(--space-6); gap: var(--space-4);
+  position: relative; overflow: hidden;
+}
+.welcome::before {
+  content: ''; position: absolute; width: 480px; height: 480px;
+  top: -120px; right: -120px; border-radius: 50%; z-index: -1;
+  background: radial-gradient(circle, rgba(203, 166, 247, 0.18), transparent 60%);
+  filter: blur(60px); pointer-events: none;
+}
+.welcome::after {
+  content: ''; position: absolute; width: 380px; height: 380px;
+  bottom: -100px; left: -100px; border-radius: 50%; z-index: -1;
+  background: radial-gradient(circle, rgba(137, 180, 250, 0.15), transparent 60%);
+  filter: blur(60px); pointer-events: none;
+}
+.welcome h2 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem); color: var(--text-primary);
+  letter-spacing: -0.02em; font-weight: 700;
+  background: var(--gradient); -webkit-background-clip: text;
+  background-clip: text; -webkit-text-fill-color: transparent;
+}
+.welcome p { color: var(--text-muted); max-width: 520px; }
+.welcome-actions {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px; margin-top: 24px; max-width: 720px; width: 100%;
+}
+.welcome-action {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px; cursor: pointer;
+  text-align: left; transition: border-color .15s, transform .15s, background .15s;
+  font: inherit; color: inherit;
+}
+.welcome-action:hover { border-color: var(--accent-dim); transform: translateY(-2px); background: var(--bg-hover); }
+.welcome-action .ico { font-size: 18px; margin-bottom: 8px; }
+.welcome-action .t { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.welcome-action .d { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
 .sidebar-item { padding: 10px 12px; margin-bottom: 1px; border-radius: var(--radius-md); }
 .sidebar-item .meta { margin-top: 4px; }
 .sidebar-item.active { background: var(--bg-hover); border-left: 2px solid var(--accent); padding-left: 10px; }
@@ -562,8 +622,30 @@ a.wiki-link:hover { color: var(--accent); border-color: var(--accent); }
   <div class="content">
     <div class="content-view active" id="notesView">
       <div class="welcome" id="welcomeState">
-        <h2>Knowledge Graph</h2>
-        <p>Create a note, ingest a URL, or select an item from the sidebar. Switch to Graph view to explore visually.</p>
+        <h2>Your knowledge,<br>working in the background.</h2>
+        <p>Forward a link, write a note, or let the spider research your hottest topic. Everything you save here joins a graph that keeps researching itself.</p>
+        <div class="welcome-actions">
+          <button class="welcome-action" onclick="showModal('ingestModal')">
+            <div class="ico">↗</div>
+            <div class="t">Ingest URL</div>
+            <div class="d">Article, video, tweet, PDF — any link.</div>
+          </button>
+          <button class="welcome-action" onclick="openNoteEditor()">
+            <div class="ico">✎</div>
+            <div class="t">New note</div>
+            <div class="d">Markdown, auto-extracted entities.</div>
+          </button>
+          <button class="welcome-action" onclick="switchView('create', document.querySelector('.tab-bar button[data-view=create]'))">
+            <div class="ico">⚡</div>
+            <div class="t">Create content</div>
+            <div class="d">Article, newsletter, or local-voice podcast.</div>
+          </button>
+          <button class="welcome-action" onclick="switchView('graph', document.querySelector('.tab-bar button[data-view=graph]'))">
+            <div class="ico">◉</div>
+            <div class="t">Open graph</div>
+            <div class="d">Visualize entities and relationships.</div>
+          </button>
+        </div>
       </div>
       <div id="noteContent" style="display:none;"></div>
       <div class="editor" id="noteEditor">

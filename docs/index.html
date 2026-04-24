@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NANTA — Your knowledge keeps researching itself</title>
+<meta name="description" content="A self-hosted research analyst. Save a link, NANTA extracts entities into a graph, polls the web for related sources, and narrates a daily podcast. Active, not passive.">
+<meta property="og:title" content="NANTA — Your knowledge keeps researching itself">
+<meta property="og:description" content="A self-hosted research analyst that turns saved links into an evolving knowledge graph with auto-research and a daily AI-narrated podcast.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0e0e16;
+  --bg-soft:   #1e1e2e;
+  --bg-card:   #181825;
+  --bg-hover:  #252536;
+  --border:    #2a2a3d;
+  --text:      #e8eaf6;
+  --text-muted:#9097ae;
+  --text-dim:  #5a607a;
+  --accent:    #89b4fa;
+  --accent-2:  #cba6f7;
+  --green:     #a6e3a1;
+  --peach:     #fab387;
+  --red:       #f38ba8;
+  --teal:      #94e2d5;
+  --yellow:    #f9e2af;
+  --gradient:  linear-gradient(135deg, #89b4fa 0%, #cba6f7 50%, #f5c2e7 100%);
+  --container: 1180px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+::selection { background: rgba(137, 180, 250, 0.35); color: var(--text); }
+.container { max-width: var(--container); margin: 0 auto; padding: 0 24px; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+
+/* ────────  Nav  ──────── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 16px 0; border-bottom: 1px solid transparent;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  background: rgba(14, 14, 22, 0.6);
+  transition: border-color .25s ease, background .25s ease;
+}
+.nav.scrolled { border-bottom-color: var(--border); background: rgba(14, 14, 22, 0.9); }
+.nav-inner { display: flex; align-items: center; justify-content: space-between; }
+.logo { font-weight: 800; letter-spacing: -0.02em; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+.logo-mark {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: var(--gradient);
+  position: relative; flex-shrink: 0;
+}
+.logo-mark::after {
+  content: ''; position: absolute; inset: 4px; border-radius: 3px;
+  background: var(--bg);
+}
+.nav-links { display: flex; gap: 28px; align-items: center; font-size: 14px; }
+.nav-links a { color: var(--text-muted); transition: color .15s; }
+.nav-links a:hover { color: var(--text); }
+.nav-cta {
+  padding: 8px 16px; border-radius: 8px; background: var(--text); color: var(--bg) !important;
+  font-weight: 600; font-size: 13px;
+}
+
+/* ────────  Buttons  ──────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 22px; border-radius: 10px; border: none;
+  font-size: 15px; font-weight: 600; transition: transform .1s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn-primary { background: var(--gradient); color: #1a1a2e; box-shadow: 0 8px 28px rgba(137, 180, 250, 0.25); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(137, 180, 250, 0.35); }
+.btn-ghost { background: rgba(255,255,255,0.04); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover { background: rgba(255,255,255,0.07); border-color: var(--accent); }
+.btn-sm { padding: 9px 14px; font-size: 13px; }
+
+/* ────────  Hero  ──────── */
+.hero {
+  position: relative; padding: 140px 0 100px; text-align: center;
+  overflow: hidden;
+}
+.hero::before, .hero::after {
+  content: ''; position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.4; z-index: -1;
+}
+.hero::before {
+  width: 500px; height: 500px; top: -150px; left: -100px;
+  background: radial-gradient(circle, var(--accent), transparent 60%);
+}
+.hero::after {
+  width: 600px; height: 600px; bottom: -200px; right: -150px;
+  background: radial-gradient(circle, var(--accent-2), transparent 60%);
+}
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 999px;
+  background: rgba(137, 180, 250, 0.08);
+  border: 1px solid rgba(137, 180, 250, 0.2);
+  color: var(--accent); font-size: 13px; font-weight: 500;
+  margin-bottom: 28px;
+}
+.eyebrow .pulse {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 0 0 var(--accent);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(137, 180, 250, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(137, 180, 250, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(137, 180, 250, 0); }
+}
+.hero h1 {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  margin-bottom: 24px;
+  max-width: 900px; margin-left: auto; margin-right: auto;
+}
+.hero h1 .grad {
+  background: var(--gradient); -webkit-background-clip: text;
+  background-clip: text; -webkit-text-fill-color: transparent;
+}
+.hero .sub {
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  color: var(--text-muted); max-width: 640px; margin: 0 auto 40px;
+  line-height: 1.55;
+}
+.hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.tiny-meta {
+  margin-top: 22px; display: flex; gap: 18px; justify-content: center;
+  font-size: 13px; color: var(--text-dim);
+}
+.tiny-meta span { display: inline-flex; align-items: center; gap: 6px; }
+.tiny-meta .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+
+/* ────────  Hero device mockup  ──────── */
+.hero-mockup {
+  margin: 80px auto 0; max-width: 1080px; padding: 0 24px;
+  position: relative;
+}
+.mockup-frame {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+.mockup-bar {
+  display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+  border-bottom: 1px solid var(--border); background: var(--bg-soft);
+}
+.mockup-dots { display: flex; gap: 6px; }
+.mockup-dots span { width: 11px; height: 11px; border-radius: 50%; }
+.mockup-dots span:nth-child(1) { background: #f38ba8; }
+.mockup-dots span:nth-child(2) { background: #f9e2af; }
+.mockup-dots span:nth-child(3) { background: #a6e3a1; }
+.mockup-tabs { display: flex; gap: 2px; margin-left: 16px; font-size: 12px; color: var(--text-dim); }
+.mockup-tabs span { padding: 4px 10px; border-radius: 6px; }
+.mockup-tabs span.active { background: var(--bg-hover); color: var(--text); }
+.mockup-body {
+  display: grid; grid-template-columns: 320px 1fr; min-height: 380px;
+  font-size: 13px;
+}
+.mockup-side {
+  background: var(--bg-soft); padding: 16px; border-right: 1px solid var(--border);
+}
+.mockup-side h4 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-dim); margin-bottom: 10px;
+}
+.mockup-side .item {
+  padding: 8px 10px; border-radius: 6px; color: var(--text-muted);
+  margin-bottom: 4px; cursor: default; display: flex; gap: 8px; align-items: center;
+}
+.mockup-side .item.sel { background: var(--bg-hover); color: var(--text); }
+.mockup-side .item .swatch { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.mockup-main { padding: 24px; }
+.mockup-main h3 {
+  font-size: 18px; font-weight: 700; margin-bottom: 12px;
+  letter-spacing: -0.01em;
+}
+.mockup-main p { color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 16px; }
+.thread-card {
+  background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px; margin-top: 12px;
+}
+.thread-head {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  font-size: 12px;
+}
+.chip-mini {
+  font-size: 10px; padding: 3px 8px; border-radius: 999px;
+  background: rgba(166, 227, 161, 0.18); color: var(--green);
+  font-weight: 600; letter-spacing: 0.02em;
+}
+.thread-row {
+  display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted);
+}
+.thread-row .src { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ────────  Sections  ──────── */
+section { padding: 100px 0; position: relative; }
+.section-head { max-width: 720px; margin: 0 auto 60px; text-align: center; }
+.section-head .label {
+  display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 14px;
+}
+.section-head h2 {
+  font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; letter-spacing: -0.025em;
+  line-height: 1.1; margin-bottom: 18px;
+}
+.section-head p {
+  font-size: clamp(1rem, 1.4vw, 1.15rem); color: var(--text-muted);
+  max-width: 580px; margin: 0 auto;
+}
+
+/* ────────  Why-you (pain)  ──────── */
+.pain-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px; max-width: 1000px; margin: 0 auto;
+}
+.pain-card {
+  padding: 28px 26px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: border-color .2s, transform .2s;
+}
+.pain-card:hover { border-color: var(--accent-2); transform: translateY(-2px); }
+.pain-card .quote {
+  font-size: 17px; font-weight: 500; line-height: 1.5; color: var(--text);
+  margin-bottom: 14px; letter-spacing: -0.01em;
+}
+.pain-card .from { font-size: 12px; color: var(--text-dim); }
+.pain-card .strike { color: var(--text-dim); text-decoration: line-through; }
+.pain-card .right { color: var(--green); font-weight: 600; }
+
+/* ────────  How — the 3 mechanics  ──────── */
+.mech-list { display: flex; flex-direction: column; gap: 64px; max-width: 1080px; margin: 0 auto; }
+.mech {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center;
+}
+.mech.flip { grid-template-columns: 1fr 1fr; direction: rtl; }
+.mech.flip > * { direction: ltr; }
+.mech-text .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 10px;
+  background: rgba(137, 180, 250, 0.12); color: var(--accent);
+  font-weight: 700; font-size: 14px; font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 18px;
+}
+.mech-text h3 {
+  font-size: clamp(1.6rem, 2.8vw, 2.1rem); font-weight: 700;
+  letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 16px;
+}
+.mech-text p {
+  font-size: 16px; color: var(--text-muted); line-height: 1.65;
+  margin-bottom: 12px;
+}
+.mech-text ul { margin: 18px 0 0; padding-left: 0; list-style: none; }
+.mech-text li {
+  font-size: 14px; color: var(--text-muted); padding: 4px 0 4px 20px;
+  position: relative;
+}
+.mech-text li::before {
+  content: ''; position: absolute; left: 4px; top: 12px;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+}
+.mech-visual {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 22px; min-height: 280px;
+  display: flex; flex-direction: column; gap: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  position: relative; overflow: hidden;
+}
+.mech-visual::before {
+  content: ''; position: absolute; top: -1px; left: -1px; right: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.mv-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; color: var(--text-dim); letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.mv-row {
+  display: flex; gap: 10px; padding: 8px 10px; border-radius: 6px;
+  background: var(--bg-soft); align-items: center;
+}
+.mv-row .ts { color: var(--text-dim); flex-shrink: 0; }
+.mv-row .kind { font-weight: 600; flex-shrink: 0; padding: 2px 8px; border-radius: 999px; font-size: 10px; }
+.mv-row .kind.q  { color: var(--accent-2); background: rgba(203, 166, 247, 0.13); }
+.mv-row .kind.c  { color: var(--peach); background: rgba(250, 179, 135, 0.13); }
+.mv-row .kind.i  { color: var(--green); background: rgba(166, 227, 161, 0.13); }
+.mv-row .kind.s  { color: var(--text-dim); background: rgba(255,255,255,0.06); }
+.mv-row .body { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.mv-row .body strong { color: var(--text); font-weight: 600; }
+
+/* Spider visual */
+.spider-wrap { position: relative; height: 240px; margin-top: 8px; }
+.spider-svg { width: 100%; height: 100%; display: block; }
+.spider-svg circle.node { fill: var(--bg-soft); stroke: var(--border); stroke-width: 1; transition: all .25s ease; }
+.spider-svg circle.node.hot { fill: var(--accent-2); stroke: var(--accent-2); }
+.spider-svg circle.node.new { fill: var(--green); stroke: var(--green); animation: pop 1.6s ease-in-out infinite; }
+@keyframes pop { 0%,100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+.spider-svg line { stroke: var(--border); stroke-width: 1; }
+.spider-svg line.live { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; animation: dash 2s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -14; } }
+.spider-svg text { font-family: 'Inter', sans-serif; font-size: 10px; fill: var(--text-muted); }
+
+/* Podcast visual */
+.pod {
+  display: flex; flex-direction: column; gap: 16px; padding: 8px 0;
+  font-family: 'Inter', sans-serif;
+}
+.pod-head {
+  display: flex; align-items: center; gap: 14px;
+}
+.pod-art {
+  width: 64px; height: 64px; border-radius: 12px;
+  background: var(--gradient); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+}
+.pod-meta .t { font-size: 14px; font-weight: 600; }
+.pod-meta .s { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.pod-bars {
+  display: flex; align-items: flex-end; gap: 3px; height: 60px; padding: 8px 12px;
+  background: var(--bg-soft); border-radius: 10px;
+}
+.pod-bars span {
+  flex: 1; background: var(--accent); border-radius: 2px;
+  animation: bar 1.2s ease-in-out infinite;
+}
+.pod-bars span:nth-child(odd) { animation-delay: .1s; }
+.pod-bars span:nth-child(3n) { background: var(--accent-2); animation-delay: .2s; }
+.pod-bars span:nth-child(5n) { animation-delay: .3s; }
+@keyframes bar { 0%,100% { height: 30%; } 50% { height: 100%; } }
+.pod-controls {
+  display: flex; gap: 14px; align-items: center; padding: 8px 12px;
+  background: var(--bg-soft); border-radius: 10px; font-size: 12px; color: var(--text-muted);
+}
+.pod-play {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #0e0e16;
+  display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800;
+}
+
+/* ────────  Stats  ──────── */
+.stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 24px; max-width: 1080px; margin: 0 auto;
+}
+.stat {
+  text-align: center; padding: 36px 16px; border-radius: 14px;
+  background: var(--bg-card); border: 1px solid var(--border);
+}
+.stat .v {
+  font-size: clamp(2rem, 3.5vw, 2.6rem); font-weight: 800; letter-spacing: -0.02em;
+  background: var(--gradient); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.stat .l { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+
+/* ────────  Compare table  ──────── */
+.compare {
+  max-width: 880px; margin: 0 auto;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  overflow: hidden;
+}
+.compare table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.compare th, .compare td {
+  padding: 16px 18px; text-align: left; border-bottom: 1px solid var(--border);
+}
+.compare th {
+  background: var(--bg-soft); color: var(--text-muted); font-weight: 600; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.compare th:first-child { width: 45%; }
+.compare td.y { color: var(--green); font-weight: 600; }
+.compare td.n { color: var(--text-dim); }
+.compare tr:last-child td { border-bottom: none; }
+.compare .row-label { color: var(--text); }
+
+/* ────────  Final CTA  ──────── */
+.cta-final {
+  text-align: center; padding: 100px 24px;
+  background: linear-gradient(180deg, transparent, rgba(137, 180, 250, 0.06));
+  border-top: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.cta-final::before {
+  content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 800px; height: 800px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(203, 166, 247, 0.12), transparent 60%);
+  z-index: 0;
+}
+.cta-final > * { position: relative; z-index: 1; }
+.cta-final h2 {
+  font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; letter-spacing: -0.025em;
+  margin-bottom: 18px;
+}
+.cta-final p { color: var(--text-muted); margin-bottom: 32px; font-size: 17px; }
+.cta-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.cta-tiny { margin-top: 24px; font-size: 13px; color: var(--text-dim); }
+.cta-tiny a { color: var(--accent); border-bottom: 1px solid transparent; }
+.cta-tiny a:hover { border-bottom-color: var(--accent); }
+
+/* ────────  Footer  ──────── */
+footer {
+  padding: 48px 0 60px; border-top: 1px solid var(--border);
+  font-size: 13px; color: var(--text-dim);
+}
+.foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+}
+.foot-links { display: flex; gap: 22px; }
+.foot-links a { color: var(--text-muted); transition: color .15s; }
+.foot-links a:hover { color: var(--text); }
+
+/* ────────  Reveal animation  ──────── */
+.reveal { opacity: 0; transform: translateY(16px); transition: opacity .8s ease, transform .8s ease; }
+.reveal.in { opacity: 1; transform: translateY(0); }
+
+/* ────────  Mobile  ──────── */
+@media (max-width: 820px) {
+  .nav-links a:not(.nav-cta) { display: none; }
+  .mockup-body { grid-template-columns: 1fr; }
+  .mockup-side { border-right: none; border-bottom: 1px solid var(--border); }
+  .mech, .mech.flip { grid-template-columns: 1fr; gap: 36px; direction: ltr; }
+  .compare th, .compare td { padding: 12px 10px; font-size: 13px; }
+  section { padding: 70px 0; }
+  .hero { padding: 110px 0 60px; }
+  .cta-final { padding: 70px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ──────── Nav ──────── -->
+<nav class="nav" id="nav">
+  <div class="container nav-inner">
+    <a href="#" class="logo"><span class="logo-mark"></span> NANTA</a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#compare">Compare</a>
+      <a href="https://github.com/Okohedeki/NANTA" target="_blank">GitHub</a>
+      <a href="https://github.com/Okohedeki/NANTA/releases" target="_blank" class="nav-cta">Download</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ──────── Hero ──────── -->
+<header class="hero">
+  <div class="container">
+    <div class="eyebrow"><span class="pulse"></span> Self-hosted · MIT · Local-first</div>
+    <h1>Save once.<br><span class="grad">Your knowledge keeps researching itself.</span></h1>
+    <p class="sub">
+      NANTA isn't a vault. It's a research analyst that lives on your laptop —
+      ingesting links, building a graph of what you know, polling the web for
+      what you don't, and narrating a daily podcast on the topics you care most about.
+    </p>
+    <div class="hero-actions">
+      <a href="https://github.com/Okohedeki/NANTA/releases" class="btn btn-primary">
+        ↓ Download for Windows
+      </a>
+      <a href="https://github.com/Okohedeki/NANTA" class="btn btn-ghost">
+        ★ Star on GitHub
+      </a>
+    </div>
+    <div class="tiny-meta">
+      <span><span class="dot"></span> No cloud</span>
+      <span><span class="dot" style="background:var(--accent-2);"></span> No subscription</span>
+      <span><span class="dot" style="background:var(--peach);"></span> Free local AI voice</span>
+    </div>
+  </div>
+
+  <div class="hero-mockup reveal">
+    <div class="mockup-frame">
+      <div class="mockup-bar">
+        <div class="mockup-dots"><span></span><span></span><span></span></div>
+        <div class="mockup-tabs">
+          <span>Notes</span><span>Graph</span><span>Digests</span>
+          <span class="active">Create</span><span>Workflows</span>
+        </div>
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-side">
+          <h4>Categories</h4>
+          <div class="item sel"><span class="swatch" style="background:var(--accent-2);"></span> AI &amp; Machine Learning <span style="margin-left:auto;color:var(--text-dim);">42</span></div>
+          <div class="item"><span class="swatch" style="background:var(--accent);"></span> Software &amp; Engineering <span style="margin-left:auto;color:var(--text-dim);">31</span></div>
+          <div class="item"><span class="swatch" style="background:var(--peach);"></span> Business &amp; Startups <span style="margin-left:auto;color:var(--text-dim);">18</span></div>
+          <div class="item"><span class="swatch" style="background:var(--red);"></span> Politics &amp; Policy <span style="margin-left:auto;color:var(--text-dim);">14</span></div>
+          <div class="item"><span class="swatch" style="background:var(--teal);"></span> Science &amp; Research <span style="margin-left:auto;color:var(--text-dim);">11</span></div>
+        </div>
+        <div class="mockup-main">
+          <h3>Briefing: Strait of Hormuz</h3>
+          <p>Auto-generated from 8 sources you saved this week, plus 3 new ones the spider just found. <span style="color:var(--green);">▶ Audio ready</span></p>
+          <div class="thread-card">
+            <div class="thread-head">
+              <span class="chip-mini">Evolving thread</span>
+              <span style="color:var(--text-dim);">3 new discoveries · last polled 14 min ago</span>
+            </div>
+            <div class="thread-row">
+              <span class="src">Iran's Foreign Minister threatens shipping closure — Reuters</span>
+              <span style="color:var(--text-dim);">news</span>
+            </div>
+            <div class="thread-row">
+              <span class="src">IAEA inspectors return to Natanz — AP</span>
+              <span style="color:var(--text-dim);">news</span>
+            </div>
+            <div class="thread-row">
+              <span class="src">Tanker rerouting analysis — Lloyd's List</span>
+              <span style="color:var(--text-dim);">article</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ──────── Why you ──────── -->
+<section id="why">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="label">Why this exists</span>
+      <h2>You read a lot. Almost none of it sticks.</h2>
+      <p>You bookmark. You highlight. You forward to yourself. Six months later it's all dead text in apps you forgot to open.</p>
+    </div>
+    <div class="pain-grid">
+      <div class="pain-card reveal">
+        <p class="quote">"My Obsidian vault is a graveyard of notes I'll never re-read."</p>
+        <p class="from">Every tool you've tried treats your knowledge as <span class="strike">a database</span> — <span class="right">an inert pile</span>.</p>
+      </div>
+      <div class="pain-card reveal">
+        <p class="quote">"I read a great article in March. By October I can't even remember the headline."</p>
+        <p class="from">Your "second brain" is a black hole. <span class="right">Saving ≠ knowing.</span></p>
+      </div>
+      <div class="pain-card reveal">
+        <p class="quote">"ChatGPT doesn't know what I've been reading. Every conversation starts cold."</p>
+        <p class="from">Your AI tools have <span class="strike">no idea</span> what you actually care about. <span class="right">NANTA is the bridge.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ──────── How — three mechanics ──────── -->
+<section id="how" style="background: linear-gradient(180deg, transparent, rgba(137,180,250,0.025), transparent);">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="label">How it works</span>
+      <h2>Three mechanics that make your graph alive.</h2>
+      <p>Most knowledge tools are passive. NANTA does work between your sessions — quietly, sparsely, and with the entire graph as context.</p>
+    </div>
+
+    <div class="mech-list">
+
+      <!-- Mechanic 1: Evolving thread -->
+      <div class="mech reveal">
+        <div class="mech-text">
+          <span class="num">01</span>
+          <h3>Evolving thread on every article</h3>
+          <p>The moment NANTA generates an article, newsletter, or podcast from your sources, it opens a research thread for the topic.</p>
+          <p>Every 24 hours, the thread polls the web for related new sources — articles, news, video — and links them back to the original. Your generated piece becomes the spine of an evolving story you can scroll through over months.</p>
+          <ul>
+            <li>Set a custom focus per thread to steer the queries</li>
+            <li>Choose cadence: 4h / 24h / 7d</li>
+            <li>Pause, resume, or stop tracking anytime</li>
+          </ul>
+        </div>
+        <div class="mech-visual">
+          <div class="mv-head"><span>research_events.log</span><span>job #42</span></div>
+          <div class="mv-row"><span class="ts">14:08</span><span class="kind q">queries</span><span class="body">Palantir whistleblower · IAEA Iran · EU AI Act enforcement</span></div>
+          <div class="mv-row"><span class="ts">14:08</span><span class="kind c">cand</span><span class="body">[news] reuters.com/iran-strait-of-hormuz-2026</span></div>
+          <div class="mv-row"><span class="ts">14:09</span><span class="kind c">cand</span><span class="body">[video] youtube.com/watch?v=palantir-deep-dive</span></div>
+          <div class="mv-row"><span class="ts">14:10</span><span class="kind i">ingest</span><span class="body"><strong>#149</strong> Normalizing Surveillance — globalvoices</span></div>
+          <div class="mv-row"><span class="ts">14:11</span><span class="kind i">ingest</span><span class="body"><strong>#150</strong> Digital Authoritarianism Increasing — biometricupdate</span></div>
+          <div class="mv-row"><span class="ts">14:11</span><span class="kind s">skip</span><span class="body">already in graph: nytimes.com/...</span></div>
+        </div>
+      </div>
+
+      <!-- Mechanic 2: Spider research -->
+      <div class="mech flip reveal">
+        <div class="mech-text">
+          <span class="num">02</span>
+          <h3>Spider research across the graph</h3>
+          <p>Every six hours, NANTA scores every entity in your graph by recency, connectivity, and total mass — then picks the single hottest topic that hasn't been researched in three days.</p>
+          <p>It generates queries that combine that topic with its <em>graph neighbors</em> — entities that already co-occur in your sources. Each poll surfaces stories that don't just match a keyword; they bridge what you already know.</p>
+          <ul>
+            <li>Picks one topic per cycle — sparse by design</li>
+            <li>Bridge queries grow your graph laterally, not just deeper</li>
+            <li>72-hour per-topic cooldown — never spammy</li>
+          </ul>
+        </div>
+        <div class="mech-visual">
+          <div class="mv-head"><span>graph spider</span><span>tick · 06h00m</span></div>
+          <div class="spider-wrap">
+            <svg class="spider-svg" viewBox="0 0 400 220" preserveAspectRatio="xMidYMid meet">
+              <line x1="200" y1="110" x2="80"  y2="50"/>
+              <line x1="200" y1="110" x2="320" y2="40"/>
+              <line x1="200" y1="110" x2="60"  y2="170"/>
+              <line x1="200" y1="110" x2="340" y2="170"/>
+              <line x1="200" y1="110" x2="200" y2="200"/>
+              <line x1="80"  y1="50"  x2="320" y2="40"  class="live"/>
+              <line x1="320" y1="40"  x2="340" y2="170" class="live"/>
+              <line x1="60"  y1="170" x2="200" y2="200"/>
+              <circle class="node hot" cx="200" cy="110" r="12"/>
+              <text x="220" y="115">Palantir Tech</text>
+              <circle class="node" cx="80"  cy="50"  r="8"/>
+              <text x="40"  y="40">Iran</text>
+              <circle class="node" cx="320" cy="40"  r="8"/>
+              <text x="285" y="30">EU AI Act</text>
+              <circle class="node" cx="60"  cy="170" r="8"/>
+              <text x="20"  y="190">DHS</text>
+              <circle class="node new" cx="340" cy="170" r="9"/>
+              <text x="300" y="195">+ Whistleblower</text>
+              <circle class="node new" cx="200" cy="200" r="9"/>
+              <text x="170" y="218">+ ICE Contracts</text>
+            </svg>
+          </div>
+          <div style="font-size: 11px; color: var(--text-dim); padding: 0 4px;">↑ Hot topic at center · neighbors are existing graph entities · green nodes are sources just found</div>
+        </div>
+      </div>
+
+      <!-- Mechanic 3: Auto-podcast -->
+      <div class="mech reveal">
+        <div class="mech-text">
+          <span class="num">03</span>
+          <h3>Daily podcast, narrated locally</h3>
+          <p>Once every 24 hours, NANTA picks the most active recent topic in your graph and writes a 10–15 minute briefing on it — journalistic tone, real synthesis across your sources.</p>
+          <p>Then it speaks the script using <strong>Kokoro</strong>, a free local neural voice — no ElevenLabs subscription, no audio leaving your machine. Wake up to a custom briefing on whatever you've been reading most.</p>
+          <ul>
+            <li>British male news-anchor voice by default — change it via <code>PODCAST_VOICE</code></li>
+            <li>Requires ≥3 fresh sources on the topic — sparse, never repetitive</li>
+            <li>168-hour per-topic cooldown</li>
+          </ul>
+        </div>
+        <div class="mech-visual">
+          <div class="pod">
+            <div class="pod-head">
+              <div class="pod-art">🎙</div>
+              <div class="pod-meta">
+                <div class="t">Briefing: Palantir Technologies</div>
+                <div class="s">12 min · 8 sources · April 23</div>
+              </div>
+            </div>
+            <div class="pod-bars">
+              <span style="height:30%"></span><span style="height:60%"></span><span style="height:80%"></span>
+              <span style="height:50%"></span><span style="height:70%"></span><span style="height:40%"></span>
+              <span style="height:90%"></span><span style="height:55%"></span><span style="height:75%"></span>
+              <span style="height:35%"></span><span style="height:65%"></span><span style="height:85%"></span>
+              <span style="height:45%"></span><span style="height:70%"></span><span style="height:30%"></span>
+              <span style="height:60%"></span><span style="height:80%"></span><span style="height:50%"></span>
+            </div>
+            <div class="pod-controls">
+              <div class="pod-play">▶</div>
+              <span>00:23 / 12:14</span>
+              <span style="margin-left:auto;">↓ Save WAV</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ──────── Stats ──────── -->
+<section style="padding: 60px 0;">
+  <div class="container">
+    <div class="stats">
+      <div class="stat reveal"><div class="v">100%</div><div class="l">Local-first<br>Your data, your disk</div></div>
+      <div class="stat reveal"><div class="v">$0</div><div class="l">Forever<br>MIT, no SaaS bill</div></div>
+      <div class="stat reveal"><div class="v">12</div><div class="l">Auto-categories<br>Out of the box</div></div>
+      <div class="stat reveal"><div class="v">5</div><div class="l">Ingestion strategies<br>Web · video · audio · PDF · social</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ──────── Compare ──────── -->
+<section id="compare">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="label">vs the competition</span>
+      <h2>Where the others stop, NANTA keeps working.</h2>
+      <p>Most tools store. NANTA <em>operates</em>.</p>
+    </div>
+    <div class="compare reveal">
+      <table>
+        <thead>
+          <tr><th>Capability</th><th>NANTA</th><th>Obsidian</th><th>Readwise</th><th>NotebookLM</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="row-label">Local-first / self-hosted</td><td class="y">✓</td><td class="y">✓</td><td class="n">cloud</td><td class="n">cloud</td></tr>
+          <tr><td class="row-label">Auto entity extraction</td><td class="y">✓</td><td class="n">manual</td><td class="n">—</td><td class="y">✓</td></tr>
+          <tr><td class="row-label">Auto-research new sources</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+          <tr><td class="row-label">Graph-driven topic discovery</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+          <tr><td class="row-label">Auto podcast (with audio)</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="y">session-bound</td></tr>
+          <tr><td class="row-label">CLI for AI agents</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+          <tr><td class="row-label">Cost</td><td class="y">$0 · OSS</td><td>$8/mo sync</td><td>$10/mo</td><td>free (Google)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ──────── Final CTA ──────── -->
+<section class="cta-final">
+  <h2>Stop hoarding. Start cultivating.</h2>
+  <p>Install once. Forward your first link. Let the spider do the rest.</p>
+  <div class="cta-actions">
+    <a href="https://github.com/Okohedeki/NANTA/releases" class="btn btn-primary">↓ Download for Windows</a>
+    <a href="https://github.com/Okohedeki/NANTA" class="btn btn-ghost">View source on GitHub</a>
+  </div>
+  <p class="cta-tiny">
+    Or run from source: <code style="font-family:'JetBrains Mono',monospace; color:var(--text-muted);">git clone</code> +
+    <code style="font-family:'JetBrains Mono',monospace; color:var(--text-muted);">python launcher.py</code>.
+    <a href="https://github.com/Okohedeki/NANTA#quick-start">Setup guide →</a>
+  </p>
+</section>
+
+<!-- ──────── Footer ──────── -->
+<footer>
+  <div class="container foot">
+    <div class="logo"><span class="logo-mark"></span> NANTA</div>
+    <div class="foot-links">
+      <a href="https://github.com/Okohedeki/NANTA">Source</a>
+      <a href="https://github.com/Okohedeki/NANTA/releases">Releases</a>
+      <a href="https://github.com/Okohedeki/NANTA/issues">Issues</a>
+      <a href="https://github.com/Okohedeki/NANTA/blob/main/LICENSE">MIT License</a>
+    </div>
+    <div>© 2026 — built in the open.</div>
+  </div>
+</footer>
+
+<script>
+  // Nav background on scroll
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 24);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Reveal-on-scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12, rootMargin: '-40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
